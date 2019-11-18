@@ -1,0 +1,90 @@
+---
+title: "BIO201 final presentation"
+author: 
+date: 
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "~/Documents/Bio201_Project/")
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r Load packages, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+library(tidyverse)
+library(readxl)
+library(broom)
+library(cowplot)
+library(agricolae)
+set.seed(7)
+
+ scfa_weekly <- read_delim(file = "final_project_data/DB_v_0.08/SCFA_wkly.txt",
+                        delim = "\t", col_names = TRUE, trim_ws = TRUE, 
+                        na = c("", "NA")) %>%
+  rename_all(tolower)
+ 
+ Accessible_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Accessible")
+ 
+  none_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "none")
+  
+BRMPS_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "BRMPS")
+
+Arabino_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Arabino")
+
+HiMaize_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "HiMaize")
+
+Inulin_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Inulin")
+
+Psyllium_BRMPS_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Psyllium+BRMPS")
+
+Psyllium_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Psyllium")
+
+BRMPS_Accessible_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "BRMPS+Accessible")
+
+LOODAT_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "LOODAT")
+
+transition_HiMaize_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "transition_HiMaize")
+
+HiMaize_BRMPS_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "HiMaize+BRMPS")
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
