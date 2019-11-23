@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "~/Documents/Bio201_Project/")
 ```
 
 ## R Markdown
@@ -22,6 +23,155 @@ library(broom)
 library(cowplot)
 library(agricolae)
 set.seed(7)
+
+
+ scfa_weekly <- read_delim(file = "final_project_data/DB_v_0.08/SCFA_wkly.txt",
+                        delim = "\t", col_names = TRUE, trim_ws = TRUE, 
+                        na = c("", "NA")) %>%
+  rename_all(tolower) %>% 
+  filter(quantity_compliant == "yes", study_week == "week1" | study_week == "week3") %>% 
+  select(-starts_with("ace"), -starts_with("but"), -ends_with("median")) %>% 
+  spread(study_week, propionate_mean)
+ 
+ Accessible_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Accessible")
+ 
+  none_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "none")
+  
+BRMPS_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "BRMPS")
+
+Arabino_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Arabino")
+
+HiMaize_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "HiMaize")
+
+Inulin_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Inulin")
+
+Psyllium_BRMPS_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Psyllium+BRMPS")
+
+Psyllium_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Psyllium")
+
+BRMPS_Accessible_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "BRMPS+Accessible")
+
+LOODAT_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "LOODAT")
+
+transition_HiMaize_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "transition_HiMaize")
+
+HiMaize_BRMPS_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter(supplement_consumed == "HiMaize+BRMPS")
+
+```
+## Assumptions & T Test for HiMaize, HiMaize+BRMPS, Inulin, LOODAT
+
+
+```{r pressure, echo=FALSE}
+# sample size of each group
+scfa_weekly %>% 
+  filter(supplement_consumed == "HiMaize") %>% 
+  summarize(sample_size = n()) # week1 n=36 & week3 n=36, not use the NA 
+scfa_weekly %>% 
+  filter(supplement_consumed == "HiMaize+BRMPS") %>% 
+  summarize(sample_size = n()) # week1 n=21 & week3 n=22, not use the NA - WILCOX
+scfa_weekly %>% 
+  filter(supplement_consumed == "Inulin") %>% 
+  summarize(sample_size = n()) # week1 n=44 & week3 n=41, not use the NA 
+scfa_weekly %>% 
+  filter(supplement_consumed == "LOODAT") %>% 
+  summarize(sample_size = n()) # week1 n=16 & week3 n=16, not use the NA - WILCOX
+
+# check normality of each group
+shapiro.test(HiMaize_weekly$week1) 
+ggplot(HiMaize_weekly, aes(x = week1)) + geom_histogram() # p=0.001113, skewed to the right -> not normal 
+shapiro.test(HiMaize_weekly$week3) 
+ggplot(HiMaize_weekly, aes(x = week3)) + geom_histogram() #p=0.001003, skewed to the right -> not normal
+
+shapiro.test(HiMaize_BRMPS_weekly$week1) 
+ggplot(HiMaize_BRMPS_weekly, aes(x = week1)) + geom_histogram() # p= 0.7258, normal shape -> yet p value to big->not normal
+shapiro.test(HiMaize_BRMPS_weekly$week3) 
+ggplot(HiMaize_BRMPS_weekly, aes(x = week3)) + geom_histogram() # p= 0.8131, normal shape -> yet p value to big->not normal
+
+shapiro.test(Inulin_weekly$week1) 
+ggplot(Inulin_weekly, aes(x = week1)) + geom_histogram() # p=0.001972, kewed to the right -> not normal
+shapiro.test(Inulin_weekly$week3) 
+ggplot(Inulin_weekly, aes(x = week3)) + geom_histogram() # p=0.003415, kewed to the right -> not normal
+
+shapiro.test(LOODAT_weekly$week1) 
+ggplot(LOODAT_weekly, aes(x = week1)) + geom_histogram() # p=0.09729, sort of bimodal and very spread out-> Not normal
+shapiro.test(LOODAT_weekly$week3) 
+ggplot(LOODAT_weekly, aes(x = week3)) + geom_histogram() # p=0.0366, sort of bimodal large space in between-> Not normal
+
+# check variances
+var.test(x = HiMaize_weekly$week1, 
+         y = HiMaize_weekly$week3, 
+         alternative = "two.sided") # p=0.1558, variances are equal
+
+var.test(x = HiMaize_BRMPS_weekly$week1, 
+         y = HiMaize_BRMPS_weekly$week3, 
+         alternative = "two.sided") # p=0.5405, variances are equal
+
+var.test(x = Inulin_weekly$week1, 
+         y = Inulin_weekly$week3, 
+         alternative = "two.sided") # p=0.3398, variances are equal
+
+var.test(x = LOODAT_weekly$week1, 
+         y = LOODAT_weekly$week3, 
+         alternative = "two.sided") # p=0.3428, variances are equal
+
+# run the t test # non-normal, equal variances, use wilcoxon test 
+
+HiMaize_weekly <- na.omit(HiMaize_weekly) 
+wilcox.test(x = HiMaize_weekly$week1, 
+            y = HiMaize_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+
+#the p value for the wilcoxon is 0.01215, which is less than 0.05 and thus rejects the null that the propionate concentration for week 1 and week 3 are not the same.
+
+# non-normal, equal variances, use wilcoxon test 
+HiMaize_BRMPS_weekly <- na.omit(HiMaize_BRMPS_weekly) 
+wilcox.test(x = HiMaize_BRMPS_weekly$week1, 
+            y = HiMaize_BRMPS_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+
+#the p value for the wilcoxon is 0.9937, which is larger than 0.05 and fails to reject the null. The propionate concentration for week 1 and week 3 are the same.
+
+# non-normal, equal variances, use wilcoxon test 
+Inulin_weekly <- na.omit(Inulin_weekly) 
+wilcox.test(x = Inulin_weekly$week1, 
+            y = Inulin_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+
+#the p value for the wilcoxon is 0.2978, which is larger than 0.05 and fails to reject the null. The propionate concentration for week 1 and week 3 are the same.
+
+# non-normal, equal variances, use wilcoxon test 
+LOODAT_weekly <- na.omit(LOODAT_weekly) 
+wilcox.test(x = LOODAT_weekly$week1, 
+            y = LOODAT_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+
+#the p value for the wilcoxon is 0.9123, which is larger than 0.05 and fails to reject the null. The propionate concentration for week 1 and week 3 are the same.
+
+# so only Hi_Maize shows significant difference for propionate concentration.
 ```
 
 ## Including Plots
