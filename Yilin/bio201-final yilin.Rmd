@@ -29,55 +29,57 @@ set.seed(7)
                         delim = "\t", col_names = TRUE, trim_ws = TRUE, 
                         na = c("", "NA")) %>%
   rename_all(tolower) %>% 
-  filter(quantity_compliant == "yes", study_week == "week1" | study_week == "week3") %>% 
+  filter(quantity_compliant == "yes", study_week == "week1" | study_week == "week3") 
+ 
+scfa_weekly_but <-scfa_weekly %>% 
   select(-starts_with("ace"), -starts_with("but"), -ends_with("median")) %>% 
   spread(study_week, propionate_mean)
  
- Accessible_weekly <- scfa_weekly %>%
+ Accessible_weekly <- scfa_weekly_but %>%
    filter(!is.na(supplement_consumed)) %>%
    filter (supplement_consumed == "Accessible")
  
-  none_weekly <- scfa_weekly %>%
+  none_weekly <- scfa_weekly_but %>%
    filter(!is.na(supplement_consumed)) %>%
    filter (supplement_consumed == "none")
   
-BRMPS_weekly <- scfa_weekly %>%
+BRMPS_weekly <- scfa_weekly_but %>%
    filter(!is.na(supplement_consumed)) %>%
    filter (supplement_consumed == "BRMPS")
 
-Arabino_weekly <- scfa_weekly %>%
+Arabino_weekly <- scfa_weekly_but %>%
    filter(!is.na(supplement_consumed)) %>%
    filter (supplement_consumed == "Arabino")
 
-HiMaize_weekly <- scfa_weekly %>%
+HiMaize_weekly <- scfa_weekly_but %>%
    filter(!is.na(supplement_consumed)) %>%
    filter (supplement_consumed == "HiMaize")
 
-Inulin_weekly <- scfa_weekly %>%
+Inulin_weekly <- scfa_weekly_but %>%
    filter(!is.na(supplement_consumed)) %>%
    filter (supplement_consumed == "Inulin")
 
-Psyllium_BRMPS_weekly <- scfa_weekly %>%
+Psyllium_BRMPS_weekly <- scfa_weekly_but %>%
    filter(!is.na(supplement_consumed)) %>%
    filter (supplement_consumed == "Psyllium+BRMPS")
 
-Psyllium_weekly <- scfa_weekly %>%
+Psyllium_weekly <- scfa_weekly_but %>%
    filter(!is.na(supplement_consumed)) %>%
    filter (supplement_consumed == "Psyllium")
 
-BRMPS_Accessible_weekly <- scfa_weekly %>%
+BRMPS_Accessible_weekly <- scfa_weekly_but %>%
    filter(!is.na(supplement_consumed)) %>%
    filter (supplement_consumed == "BRMPS+Accessible")
 
-LOODAT_weekly <- scfa_weekly %>%
+LOODAT_weekly <- scfa_weekly_but %>%
    filter(!is.na(supplement_consumed)) %>%
    filter (supplement_consumed == "LOODAT")
 
-transition_HiMaize_weekly <- scfa_weekly %>%
+transition_HiMaize_weekly <- scfa_weekly_but %>%
    filter(!is.na(supplement_consumed)) %>%
    filter (supplement_consumed == "transition_HiMaize")
 
-HiMaize_BRMPS_weekly <- scfa_weekly %>%
+HiMaize_BRMPS_weekly <- scfa_weekly_but %>%
    filter(!is.na(supplement_consumed)) %>%
    filter(supplement_consumed == "HiMaize+BRMPS")
 
@@ -87,16 +89,16 @@ HiMaize_BRMPS_weekly <- scfa_weekly %>%
 
 ```{r pressure, echo=FALSE}
 # sample size of each group
-scfa_weekly %>% 
+scfa_weekly_but %>% 
   filter(supplement_consumed == "HiMaize") %>% 
   summarize(sample_size = n()) # week1 n=36 & week3 n=36, not use the NA 
-scfa_weekly %>% 
+scfa_weekly_but %>% 
   filter(supplement_consumed == "HiMaize+BRMPS") %>% 
   summarize(sample_size = n()) # week1 n=21 & week3 n=22, not use the NA - WILCOX
-scfa_weekly %>% 
+scfa_weekly_but %>% 
   filter(supplement_consumed == "Inulin") %>% 
   summarize(sample_size = n()) # week1 n=44 & week3 n=41, not use the NA 
-scfa_weekly %>% 
+scfa_weekly_but %>% 
   filter(supplement_consumed == "LOODAT") %>% 
   summarize(sample_size = n()) # week1 n=16 & week3 n=16, not use the NA - WILCOX
 
@@ -173,13 +175,28 @@ wilcox.test(x = LOODAT_weekly$week1,
 
 # so only Hi_Maize shows significant difference for propionate concentration.
 ```
+## Is other SCFA also changed according to the supplement?
 
-## Including Plots
+```{r pressure, echo=FALSE}
+
+
+```
+## delta changes
 
 You can also embed plots, for example:
 
 ```{r pressure, echo=FALSE}
-plot(pressure)
+HiMaize_weekly_delta <- HiMaize_weekly %>% 
+mutate(delta_propionate = week3 - week1) 
+#U043, #0U52 #0U57 #U369 #U377 #U379 #U382 #U387 #U388 #U390 #U392
+
+
+species_avg <- read_delim(file = "final_project_data/species_avg_shared.txt",
+                        delim = "\t", col_names = TRUE, trim_ws = TRUE, 
+                        na = c("", "NA")) 
+#U52:Ana
+
 ```
+
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
