@@ -1,12 +1,13 @@
 ---
 title: "BIO201 final presentation"
-author: 
-date: 
+author: Kasey Neff
+date: 11.18.19
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "~/Documents/Bio201_Project/Kasey/")
 ```
 
 ## R Markdown
@@ -19,9 +20,9 @@ library(cowplot)
 library(agricolae)
 set.seed(7)
 
- scfa_weekly <- read_delim(file = "/Users/kaseyn/Documents/Bio201_Project/final_project_data/DB_v_0.08/SCFA_wkly.txt",
+ scfa_weekly <- read_delim(file = "/Documents/Bio201_Project/final_project_data/DB_v_0.08/SCFA_wkly.txt",
                         delim = "\t", col_names = TRUE, trim_ws = TRUE, 
-                        na = c("", "NA")) %>%
+                        na = c("\t", "NA")) %>%
   rename_all(tolower) %>% 
   filter(quantity_compliant == "yes", study_week == "week1" | study_week == "week3") %>% 
   select(-starts_with("ace"), -starts_with("but"), -ends_with("median")) %>% 
@@ -39,6 +40,9 @@ BRMPS_weekly <- scfa_weekly %>%
 Arabino_weekly <- scfa_weekly %>%
    filter(!is.na(supplement_consumed)) %>%
    filter (supplement_consumed == "Arabino")
+HiMaize_BRMPS_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter(supplement_consumed == "HiMaize+BRMPS")
 ```
 
 ## Assumptions & T Test for Accessible, Arabino, BRMPS, BRMPS+Accessible
@@ -122,6 +126,42 @@ wilcox.test(x = Arabino_weekly$week1,
 
 #the p value for the wilcox is 0.0874, which is larger than 0.05 and fails to reject the null. The propionate concentration for week 1 and week 3 are the same.
 
-```
+HiMaize_weekly <- na.omit(HiMaize_weekly) 
+wilcox.test(x = HiMaize_weekly$week1, 
+            y = HiMaize_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
 
+#the p value for the wilcox is 0.01215, which is less than 0.05 and thus rejects the null that the propionate concentration for week 1 and week 3 are not the same.
+```
+#Ordinated plot and propionate phyloseq
+```{r}
+# sample data 
+long_priop_delta_table <- long_priop_delta %>% 
+  mutate(sample_id = paste(participant_id, study_week, sep="_")) %>% #cobine two columns to make new column
+  column_to_rownames(var = "sample_id") %>% 
+  sample_data(.) 
+
+# seq var info 
+all_data_indv <- read_delim("~/Documents/Bio201_Project/final_project_data/species_avg_shared.txt", 
+                            delim = "\t", escape_double = FALSE, 
+                            trim_ws = TRUE, 
+                            col_types = cols()) %>%
+  
+  rename_all(tolower) %>% #make all column names lower case
+  filter(semester == "Winter2017" | semester == "Fall2015") %>%
+  select(-semester) %>% 
+  mutate(sample_id = paste(participant_id, study_week, sep="_")) %>% #cobine two columns to make new column
+  distinct(., sample_id, .keep_all = TRUE) %>% #remove duplicate sample ids 
+  column_to_rownames(var = "sample_id") %>% #sample IDs need to be made into row names
+  select(-participant_id, -study_week) %>%
+  as.matrix() %>% #convert data frame to matrix object
+  otu_table(., taxa_are_rows = FALSE) #specify type of phyloseq object
+
+# merge all three data frames into phyloseq object
+physq_obj <- phyloseq(all_data_indv, long_priop_delta_table) 
+physq_obj 
+
+
+
+```
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
