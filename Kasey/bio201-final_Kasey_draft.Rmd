@@ -1,0 +1,185 @@
+---
+title: "BIO201 final presentation"
+author: Kasey Neff
+date: 11/18/19
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "~/Documents/Bio201_Project/")
+```
+
+## R Markdown
+
+```{r Load packages, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+library(tidyverse)
+library(readxl)
+library(broom)
+library(cowplot)
+library(agricolae)
+library(phyloseq)
+set.seed(7)
+
+read_delim(file = "/Bio201_Project/final_project_data/DB_v_0.08/SCFA_wkly.txt",
+                        delim = "\t", col_names = TRUE, trim_ws = TRUE, 
+                        na = c("", "NA")) %>%
+
+ scfa_weekly <- SCFA_wkly %>% 
+  rename_all(tolower) %>% 
+  filter(quantity_compliant == "yes", study_week == "week1" | study_week == "week3") %>% 
+  select(-starts_with("ace"), -starts_with("but"), -ends_with("median")) %>% 
+  spread(study_week, propionate_mean) %>% 
+  write_delim(path="~/Documents/Bio201_Project/Kasey/curated_data/scfa_weekly.txt",
+            delim = "\t", quote = FALSE, col_names = TRUE)
+ 
+Accessible_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Accessible")
+BRMPS_Accessible_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "BRMPS+Accessible")
+BRMPS_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "BRMPS")
+Arabino_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Arabino")
+HiMaize_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "HiMaize")
+
+write_delim(Accessible_weekly, 
+            path = "~/Documents/Bio201_Project/Kasey/curated_data/Accessible_weekly.txt",
+            delim = "\t", quote = FALSE, col_names = TRUE)
+write_delim(Arabino_weekly, 
+            path = "~/Documents/Bio201_Project/Kasey/curated_data/Arabino_weekly.txt",
+            delim = "\t", quote = FALSE, col_names = TRUE)
+write_delim(BRMPS_weekly, 
+            path = "~/Documents/Bio201_Project/Kasey/curated_data/BRMPS_weekly_weekly.txt",
+            delim = "\t", quote = FALSE, col_names = TRUE)
+write_delim(BRMPS_Accessible_weekly, 
+            path = "~/Documents/Bio201_Project/Kasey/curated_data/BRMPS_Accessible_weekly.txt",
+            delim = "\t", quote = FALSE, col_names = TRUE)
+```
+
+## Assumptions & T Test for Accessible, Arabino, BRMPS, BRMPS+Accessible
+
+```{r}
+# sample size of each group
+scfa_weekly %>% 
+  filter(supplement_consumed == "Accessible") %>% 
+  summarize(sample_size = n()) # week1 n=31 & week3 n=32, not use the NA 
+scfa_weekly %>% 
+  filter(supplement_consumed == "Arabino") %>% 
+  summarize(sample_size = n()) # week1 n=17 & week3 n=13, not use the NA - WILCOX
+scfa_weekly %>% 
+  filter(supplement_consumed == "BRMPS") %>% 
+  summarize(sample_size = n()) # week1 n=151 & week3 n=151, not use the NA 
+scfa_weekly %>% 
+  filter(supplement_consumed == "BRMPS+Accessible") %>% 
+  summarize(sample_size = n()) # week1 n=17 & week3 n=16, not use the NA - WILCOX
+
+# check normality of each group
+shapiro.test(Accessible_weekly$week1) 
+ggplot(Accessible_weekly, aes(x = week1)) + geom_histogram() # p=0.001208, skewed to the right -> not normal 
+shapiro.test(Accessible_weekly$week3) 
+ggplot(Accessible_weekly, aes(x = week3)) + geom_histogram() #p=0.0006834, slightly skewed to the right -> not normal
+
+shapiro.test(Arabino_weekly$week1) 
+ggplot(Arabino_weekly, aes(x = week1)) + geom_histogram() # p=0.01328, skewed to the right -> not normal 
+shapiro.test(Arabino_weekly$week3) 
+ggplot(Arabino_weekly, aes(x = week3)) + geom_histogram() # p=0.5143, sort of normal shaped -> normal
+
+shapiro.test(BRMPS_weekly$week1) 
+ggplot(BRMPS_weekly, aes(x = week1)) + geom_histogram() # p=6.225e-06, bimodal and skewed to the right -> not normal
+shapiro.test(BRMPS_weekly$week3) 
+ggplot(BRMPS_weekly, aes(x = week3)) + geom_histogram() # p=1.357e-09, skewed to the right -> not normal
+
+shapiro.test(BRMPS_Accessible_weekly$week1) 
+ggplot(BRMPS_Accessible_weekly, aes(x = week1)) + geom_histogram() # p=0.202, sort of bimodal and very spread out -> not normal
+shapiro.test(BRMPS_Accessible_weekly$week3) 
+ggplot(BRMPS_Accessible_weekly, aes(x = week3)) + geom_histogram() # p=0.02685, skewed to the right -> not normal
+
+# check variances
+var.test(x = Accessible_weekly$week1, 
+         y = Accessible_weekly$week3, 
+         alternative = "two.sided") # p=0.2249, variances are equal
+var.test(x = Arabino_weekly$week1, 
+         y = Arabino_weekly$week3, 
+         alternative = "two.sided") # p=0.6808, variances are equal
+var.test(x = BRMPS_weekly$week1, 
+         y = BRMPS_weekly$week3, 
+         alternative = "two.sided") # p=0.01992, variances are not equal
+var.test(x = BRMPS_Accessible_weekly$week1, 
+         y = BRMPS_Accessible_weekly$week3, 
+         alternative = "two.sided") # p=0.9149, variances are equal
+
+# run the t test -> since none of them pass normality, two don't have high enough sample sizes, and one doesn't have equal variances, we chose to proceed using the Wilcox test...
+
+Accessible_weekly <- na.omit(Accessible_weekly) 
+wilcox.test(x = Accessible_weekly$week1, 
+            y = Accessible_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+#p value=0.1258, which is not less than 0.05 and thus we can not reject the null that the propionate concentration for week 1 and week 3 are not the same for the Accessible supplement.
+
+Arabino_weekly <- na.omit(Arabino_weekly) 
+wilcox.test(x = Arabino_weekly$week1, 
+            y = Arabino_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+#p value=0.0874, which is  less than 0.05 and thus we can not reject the null that the propionate concentration for week 1 and week 3 are not the same for the Arabino supplement.
+
+BRMPS_weekly <- na.omit(BRMPS_weekly) 
+wilcox.test(x = BRMPS_weekly$week1, 
+            y = BRMPS_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+#p value=0.8386, which is not less than 0.05 and thus we can not reject the null that the propionate concentration for week 1 and week 3 are not the same for the BRMPS supplement.
+
+BRMPS_Accessible_weekly <- na.omit(BRMPS_Accessible_weekly) 
+wilcox.test(x = BRMPS_Accessible_weekly$week1, 
+            y = BRMPS_Accessible_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+#p value=0.45, which is not less than 0.05 and thus we can not reject the null that the propionate concentration for week 1 and week 3 are not the same for the BRMPS+Accessible supplement.
+
+HiMaize_weekly <- na.omit(HiMaize_weekly) 
+wilcox.test(x = HiMaize_weekly$week1, 
+            y = HiMaize_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+
+#in conclusion, none of the above supplements allowed us to reject the null hypothesis that propionate concentration differed between week1 and week3. 
+
+propionate_phylum_taxa <- person_week_mean_by_cat_w_phylum %>% 
+  filter(week == "week_1" | week == "week_3",
+         category == "propionate_gen")
+```
+
+##Propionate categories + Ordination plot
+
+```{r}
+# sample data
+# otu/shared table 
+
+physq_propionate_bc <- ordinate(physq_sub, 
+                      method = "NMDS", 
+                      k=2, maxit=100, try=50,
+                      distance = "bray")
+physq_propionate_bc
+
+physq_sub_ordination <- ordinate(physq_sub, 
+                      method = "NMDS", 
+                      k=2, maxit=100, try=50,
+                      distance = "jaccard")
+physq_sub_ordination
+#stress value = 0.2280275, pretty low but not lower than 0.20...
+
+ordplot1 <- plot_ordination(physeq = physq_sub, 
+                     ordination = physq_propionate_bc, 
+                     type = "samples", 
+                     color = "participant_id", 
+                     shape = "study_week")
+print(ordplot1)
+```
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
