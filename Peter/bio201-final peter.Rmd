@@ -1,12 +1,13 @@
 ---
 title: "BIO201 final presentation"
-author: 
+author: Peter Nam
 date: 
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "~/Documents/Bio201_Project/")
 ```
 
 ## R Markdown
@@ -24,9 +25,145 @@ library(agricolae)
 set.seed(7)
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+
+```{r}
+scfa_weekly <- read_delim(file = "final_project_data/DB_v_0.08/SCFA_wkly.txt",
+                        delim = "\t", col_names = TRUE, trim_ws = TRUE, 
+                        na = c("", "NA")) %>%
+  rename_all(tolower) %>%
+  filter(quantity_compliant == "yes" | quantity_compliant == "none", study_week == "week1" | study_week == "week3") %>% 
+  select(-starts_with("ace"), -starts_with("but"), -ends_with("median")) %>% 
+  spread(study_week, propionate_mean)
+ 
+ Accessible_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Accessible")
+ 
+  none_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "none")
+  
+BRMPS_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "BRMPS")
+
+Arabino_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Arabino")
+
+HiMaize_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "HiMaize")
+
+Inulin_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Inulin")
+
+Psyllium_BRMPS_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Psyllium+BRMPS")
+
+Psyllium_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Psyllium")
+
+BRMPS_Accessible_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "BRMPS+Accessible")
+
+LOODAT_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "LOODAT")
+
+transition_HiMaize_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "transition_HiMaize")
+
+HiMaize_BRMPS_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "HiMaize+BRMPS")
+
+
+# sample size 
+scfa_weekly %>% 
+  filter(supplement_consumed == "none") %>% 
+  summarize(sample_size = n()) # week 1 = 26, week 3 = 28
+
+scfa_weekly %>% 
+  filter(supplement_consumed == "Psyllium") %>% 
+  summarize(sample_size = n()) # week 1 = 12, week 3 = 16
+
+scfa_weekly %>% 
+  filter(supplement_consumed == "Psyllium+BRMPS") %>% 
+  summarize(sample_size = n()) # week 1 = 14, week 3 = 15
+
+scfa_weekly %>% 
+  filter(supplement_consumed == "transition_HiMaize") %>% 
+  summarize(sample_size = n()) # week 1 = 27, week 3 = 27
+
+
+shapiro.test(none_weekly$week1) 
+ggplot(none_weekly, aes(x = week1)) + geom_histogram() # p-value = 0.01, not normal
+shapiro.test(none_weekly$week3) 
+ggplot(none_weekly, aes(x = week3)) + geom_histogram() # p-value = 0.002, not normal
+
+shapiro.test(Psyllium_weekly$week1) 
+ggplot(Psyllium_weekly, aes(x = week1)) + geom_histogram() # p-value = 1, normal
+shapiro.test(Psyllium_weekly$week3) 
+ggplot(Psyllium_weekly, aes(x = week3)) + geom_histogram() # p-value = 0.12, normal
+
+shapiro.test(Psyllium_BRMPS_weekly$week1) 
+ggplot(Psyllium_BRMPS_weekly, aes(x = week1)) + geom_histogram() # p-value = 0.07, not normal
+shapiro.test(Psyllium_BRMPS_weekly$week3) 
+ggplot(Psyllium_BRMPS_weekly, aes(x = week3)) + geom_histogram() # p-value = 0.60, normal
+
+shapiro.test(transition_HiMaize_weekly$week1) 
+ggplot(transition_HiMaize_weekly, aes(x = week1)) + geom_histogram() # p-value = 0.60, normal
+shapiro.test(transition_HiMaize_weekly$week3) 
+ggplot(transition_HiMaize_weekly, aes(x = week3)) + geom_histogram() # p-value = 0.0004, not normal
+
+
+var.test(x = none_weekly$week1, 
+         y = none_weekly$week3, 
+         alternative = "two.sided") # p-value = 0.66, variances considered equal
+
+var.test(x = Psyllium_weekly$week1, 
+         y = Psyllium_weekly$week3, 
+         alternative = "two.sided") # p-value = 0.41, variances considered equal
+
+var.test(x = Psyllium_BRMPS_weekly$week1, 
+         y = Psyllium_BRMPS_weekly$week3, 
+         alternative = "two.sided") # p-value = 0.04, variances considered unequal
+
+var.test(x = transition_HiMaize_weekly$week1, 
+         y = transition_HiMaize_weekly$week3, 
+         alternative = "two.sided") # p-value = 0.92, variances considered equal
+
+wilcox.test(x = none_weekly$week1,
+            y = none_weekly$week3,
+            alternative = "less", paired = TRUE, var.equal = TRUE, na.rm = TRUE) 
+# p-value = 0.12, there is not sufficient evidence to conclude a change in propionate from week 1 to week 3 in individuals who consumed no supplement.
+
+wilcox.test(x = Psyllium_weekly$week1,
+            y = Psyllium_weekly$week3,
+            alternative = "less", paired = TRUE, var.equal = TRUE, na.rm = TRUE)
+# p-value = 0.62, there is not sufficient evidence to conclude a change in propionate from week 1 to week 3 in individuals who consumed Psyllium.
+
+wilcox.test(x = Psyllium_BRMPS_weekly$week1,
+            y = Psyllium_BRMPS_weekly$week3,
+            alternative = "less", paired = TRUE, var.equal = FALSE, na.rm = TRUE)
+# p-value = 0.88, there is not sufficient evidence to conclude a change in propionate from week 1 to week 3 in individuals who consumed Psyllium and BRMPS.
+
+wilcox.test(x = transition_HiMaize_weekly$week1,
+            y = transition_HiMaize_weekly$week3,
+            alternative = "less", paired = TRUE, var.equal = TRUE, na.rm = TRUE)
+# p-value = 0.97, there is not sufficient evidence to conclude a change in propionate from week 1 to week 3 in individuals who consumed transition HiMaize.
+
+
+
+
+```
 
 ```{r pressure, echo=FALSE}
 plot(pressure)
