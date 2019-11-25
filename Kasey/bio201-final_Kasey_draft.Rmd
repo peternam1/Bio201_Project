@@ -175,7 +175,7 @@ physq_sub_ordination
 ordplot1 <- plot_ordination(physeq = physq_sub, 
                      ordination = physq_propionate_bc, 
                      type = "samples", 
-                     color = "participant_id", 
+                     color = "phylum", 
                      shape = "study_week")
 print(ordplot1)
 ```
