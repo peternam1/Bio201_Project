@@ -266,7 +266,7 @@ phylum_plot <- ggplot(data = physq_long,
 save_plot(filename = "phylum_plot.pdf",
           plot = phylum_plot,
           nrow = 1, ncol = 1, 
-          base_aspect_ratio = 4)
+          base_aspect_ratio = 3)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
