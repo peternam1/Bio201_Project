@@ -106,7 +106,13 @@ scfa_weekly_prop %>%
 shapiro.test(HiMaize_weekly$week1) 
 ggplot(HiMaize_weekly, aes(x = week1)) + geom_histogram() # p=0.001113, skewed to the right -> not normal 
 shapiro.test(HiMaize_weekly$week3) 
-ggplot(HiMaize_weekly, aes(x = week3)) + geom_histogram() #p=0.001003, skewed to the right -> not normal
+graph_Himaize <- ggplot(HiMaize_weekly, aes(x = week3)) + geom_histogram() #p=0.001003, skewed to the right -> not normal
+
+
+save_plot(filename = "Yilin/figures/HiMaize_distribution.pdf", 
+          plot= graph_Himaize,
+           nrow = 3, ncol = 6, 
+          base_aspect_ratio = 1.1)
 
 shapiro.test(HiMaize_BRMPS_weekly$week1) 
 ggplot(HiMaize_BRMPS_weekly, aes(x = week1)) + geom_histogram() # p= 0.7258, normal shape -> yet p value to big->not normal
@@ -284,15 +290,41 @@ delta_propionate <- grep_week3 %>%
     distinct(., sample, .keep_all = TRUE) 
 graph_data<- inner_join(prop_gen_abd,delta_propionate,
                         by = ("sample"))
+#propionate generator abundance for group1
+grep_week1<- relative_sample[grep("week1", relative_sample$sample), ]
+prop_gen_abd_1 <- grep_week1 %>%
+filter (category == "propionate_gen") %>%
+group_by(sample) %>%
+summarize(prop_abundance = sum(abundance))
 
+delta_propionate <- grep_week1 %>%
+  select(sample,delta_propionate,proprionate_value)%>%
+    distinct(., sample, .keep_all = TRUE) 
+graph_data_1<- inner_join(prop_gen_abd_1,delta_propionate,
+                        by = ("sample"))
+
+# try-out
+all_data_try <- read_delim("~/Documents/Bio201_Project/final_project_data/species_avg_shared.txt", 
+                            delim = "\t", escape_double = FALSE, 
+                            trim_ws = TRUE, 
+                            col_types = cols()) %>%
+  
+  rename_all(tolower) %>% #make all column names lower case
+  filter(semester == "Winter2017" | semester == "Fall2015") %>%
+  select(-semester) %>% 
+ #cobine two columns to make new column
+  distinct(., sample_id, .keep_all = TRUE) %>% #remove duplicate sample ids 
+  column_to_rownames(var = "sample_id") %>% #sample IDs need to be made into row names
+  select(-participant_id, -study_week)
+graph_data_all <- full_join (graph_data_1,graph_data)
 ```
 ## relationship with propionate generators 
 ```{r pressure, echo=FALSE}
  
- graph_data <- graph_data%>% 
+ graph_data_1 <- graph_data%>% 
   filter(delta_propionate >0)
 # plot to determine whether there is a relationship between propionate abundance and positive delta_propionate of participants who consume Hi_Maize
-plot_prop_delta<- graph_data %>%
+plot_prop_delta<- graph_data_1 %>%
  ggplot(aes(x = delta_propionate,
              y = prop_abundance)) + 
   geom_point() + #puts data points to match x and y coordinates
@@ -303,14 +335,14 @@ plot_prop_delta<- graph_data %>%
 
 plot_prop_delta
 #correlation test
-m_delta <- graph_data %>%
+m_delta <- graph_data_1 %>%
   lm(delta_propionate ~ prop_abundance, data = .) #test relationship
 summary(m_delta) #view results 
 #the p value is  0.5892, larger than 0.05, which means we can't use the linear model to interpreate the correlation that there could some linear relationship about delta_propionatae  and propionat generator abudance;
 
-#is there a relationship between propionate generator abundance and propionate value?
+#is there a relationship between propionate generator abundance and the propionate value in group who show's increase in propionate value?
 
-plot_prop_value<- graph_data %>%
+plot_prop_value<- graph_data_1 %>%
  ggplot(aes(x = proprionate_value,
              y = prop_abundance)) + 
   geom_point() + #puts data points to match x and y coordinates
@@ -321,10 +353,27 @@ plot_prop_value<- graph_data %>%
 
 plot_prop_value
 #correlation test
-m_value <- graph_data %>%
+m_value <- graph_data_1 %>%
   lm(proprionate_value ~ prop_abundance, data = .) #test relationship
 summary(m_value) #view results 
 #the p value is  0.536, larger than 0.05, which means we can't use the linear model to interpreate the correlation that there could some linear relationship about propionate value  and propionat generator abudance;
+
+
+#correlation: difference in semseter; prop_gen abundance change by semseter (fall2015 vs winter 2017)
+#winter 2017 
+
+plot_prop_value<- graph_data %>%
+ ggplot(aes(x = proprionate_value,
+             y = prop_abundance)) + 
+  geom_point() + #puts data points to match x and y coordinates
+  geom_smooth(method = "lm", #used to create a linear best fit line
+              se = FALSE) + #hides confidence interval around line 
+  xlab("propionate mean (mmol/kg)") + 
+  ylab("propionate generator abundance
+
+#fall2015 vs winter 2017
+# (correlation: difference in abundance vs delta propionate (all)
+
  
 ```
 
