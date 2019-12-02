@@ -22,11 +22,12 @@ library(readxl)
 library(broom)
 library(cowplot)
 library(agricolae)
+library(phyloseq)
 set.seed(7)
 ```
 
 
-
+### Formatting and Separating Data
 ```{r}
 scfa_weekly <- read_delim(file = "final_project_data/DB_v_0.08/SCFA_wkly.txt",
                         delim = "\t", col_names = TRUE, trim_ws = TRUE, 
@@ -83,7 +84,11 @@ transition_HiMaize_weekly <- scfa_weekly %>%
 HiMaize_BRMPS_weekly <- scfa_weekly %>%
    filter(!is.na(supplement_consumed)) %>%
    filter (supplement_consumed == "HiMaize+BRMPS")
+```
 
+
+### Conditions and Corresponding Statistical Tests
+```{r}
 
 # sample size 
 scfa_weekly %>% 
@@ -103,6 +108,7 @@ scfa_weekly %>%
   summarize(sample_size = n()) # week 1 = 27, week 3 = 27
 
 
+# normality
 shapiro.test(none_weekly$week1) 
 ggplot(none_weekly, aes(x = week1)) + geom_histogram() # p-value = 0.01, not normal
 shapiro.test(none_weekly$week3) 
@@ -124,6 +130,7 @@ shapiro.test(transition_HiMaize_weekly$week3)
 ggplot(transition_HiMaize_weekly, aes(x = week3)) + geom_histogram() # p-value = 0.0004, not normal
 
 
+# variance
 var.test(x = none_weekly$week1, 
          y = none_weekly$week3, 
          alternative = "two.sided") # p-value = 0.66, variances considered equal
@@ -140,6 +147,8 @@ var.test(x = transition_HiMaize_weekly$week1,
          y = transition_HiMaize_weekly$week3, 
          alternative = "two.sided") # p-value = 0.92, variances considered equal
 
+
+# statistical tests
 wilcox.test(x = none_weekly$week1,
             y = none_weekly$week3,
             alternative = "less", paired = TRUE, var.equal = TRUE, na.rm = TRUE) 
@@ -161,12 +170,163 @@ wilcox.test(x = transition_HiMaize_weekly$week1,
 # p-value = 0.97, there is not sufficient evidence to conclude a change in propionate from week 1 to week 3 in individuals who consumed transition HiMaize.
 
 
+```
+
+```{r}
+
+scfa_weekly_ace_HiMaize <- read_delim(file = "final_project_data/DB_v_0.08/SCFA_wkly.txt",
+                        delim = "\t", col_names = TRUE, trim_ws = TRUE, 
+                        na = c("", "NA")) %>%
+  rename_all(tolower) %>%
+  filter(quantity_compliant == "yes" | quantity_compliant == "none", study_week == "week1" | study_week == "week3") %>% 
+  select(-starts_with("prop"), -starts_with("but"), -ends_with("median")) %>% 
+  spread(study_week, acetate_mean) %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "HiMaize")
+
+# Conditions 
+
+# Sample Size: week 1 = 42; week 3 = 41
+
+# Normality 
+shapiro.test(scfa_weekly_ace_HiMaize$week1) 
+ggplot(scfa_weekly_ace_HiMaize, aes(x = week1)) + geom_histogram() 
+# p-value = 6.38e-05, not normal 
+shapiro.test(scfa_weekly_ace_HiMaize$week3) 
+ggplot(scfa_weekly_ace_HiMaize, aes(x = week3)) + geom_histogram() 
+# p-value = 0.0005351, not normal 
+
+# Variance
+var.test(x = scfa_weekly_ace_HiMaize$week1, 
+         y = scfa_weekly_ace_HiMaize$week3, 
+         alternative = "two.sided")
+ # p-value = 0.3997, variances are equal
+
+# Statistical Test
+scfa_weekly_ace_HiMaize <- na.omit(scfa_weekly_ace_HiMaize) 
+wilcox.test(x = scfa_weekly_ace_HiMaize$week1, 
+            y = scfa_weekly_ace_HiMaize$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+# p-value = 0.492, there is not sufficient evidence to conclude that there was a change in average Acetate.
+
+
 
 
 ```
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+
+```{r}
+
+HiMaize_weekly_delta <- HiMaize_weekly %>% 
+mutate(delta_propionate = week3 - week1) %>% 
+#U043, #0U52 #0U57 #U369 #U377 #U379 #U382 #U387 #U388 #U390 de#U392
+gather(key=study_week, value= proprionate_value, week1:week3)
+
+HiMaize_weekly_decrease <- HiMaize_weekly_delta %>%
+filter(delta_propionate < 0)
+
+# Ordinated plot and propionate phyloseq
+ # sample data 
+ long_prop_delta_table <- HiMaize_weekly_delta %>% 
+   mutate(sample_id = paste(participant_id, study_week, sep="_")) %>%
+   column_to_rownames(var = "sample_id") %>% 
+   sample_data(.) 
+
+ # seq var info 
+ all_data_indv <- read_delim("~/Documents/Bio201_Project/final_project_data/species_avg_shared.txt", 
+                             delim = "\t", escape_double = FALSE, 
+                             trim_ws = TRUE, 
+                             col_types = cols()) %>%
+   
+   rename_all(tolower) %>% # make all column names lower case
+   filter(semester == "Winter2017" | semester == "Fall2015") %>%
+   select(-semester) %>% 
+   mutate(sample_id = paste(participant_id, study_week, sep="_")) %>% # combine two columns to make new column
+   distinct(., sample_id, .keep_all = TRUE) %>% # remove duplicate sample ids 
+   column_to_rownames(var = "sample_id") %>% # sample IDs need to be made into row names
+   select(-participant_id, -study_week) %>%
+   as.matrix() %>% # convert data frame to matrix object
+   otu_table(., taxa_are_rows = FALSE) # specify type of phyloseq object
+
+ # merge all three data frames into phyloseq object
+ physq_obj <- phyloseq(all_data_indv, long_prop_delta_table) 
+ physq_obj 
+ 
+ # long format of species and people data
+sample_data_long <- psmelt(physq_obj) %>%
+rename_all(tolower) %>%
+rename(tax_name = otu ) %>%
+   filter(abundance > 0)
+
+generator_info<-read_delim(file = "Peter/tax_scfa.txt",
+                        delim = "\t", col_names = TRUE, trim_ws = TRUE, 
+                        na = c("", "NA")) %>%
+  rename_all(tolower) %>%
+select(tax_name, category, phylum)
+ generator_info$tax_name <- tolower(generator_info$tax_name)
+
+sample_data_long_cut <- sample_data_long %>%
+    select(sample, tax_name, abundance,delta_propionate, proprionate_value)
+
+ relative_sample <- inner_join(sample_data_long_cut,generator_info,
+                               by = ("tax_name")) 
+relative_sample <- unique(relative_sample [,c("sample","tax_name", "category", "abundance", "delta_propionate", "proprionate_value")])
+
+# week 3 data with matched metabolic identities
+grep_week3<- relative_sample[grep("week3", relative_sample$sample), ]
+
+# relative abundance of proprionate generators in week 3 in participants who consume HiMaize
+prop_gen_abd <- grep_week3 %>%
+filter (category == "propionate_gen") %>%
+group_by(sample) %>%
+summarize(prop_abundance = sum(abundance))
+
+delta_propionate <- grep_week3 %>%
+  select(sample,delta_propionate,proprionate_value)%>%
+    distinct(., sample, .keep_all = TRUE) 
+graph_data<- inner_join(prop_gen_abd,delta_propionate,
+                        by = ("sample"))
+
+```
+
+```{r}
+
+test_data <- graph_data %>%
+   filter(delta_propionate < 0)
+
+prop_plot <- test_data %>%
+ ggplot(aes(x = delta_propionate,
+             y = prop_abundance)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", 
+              se = FALSE) + 
+  xlab("Change in Propionate (mmol/kg)") + 
+  ylab("Propionate Generator Abundance") 
+prop_plot
+
+# Correlation test
+m_delta <- test_data %>%
+  lm(delta_propionate ~ prop_abundance, data = .) 
+summary(m_delta)
+# p-value = 0.9915, there is not enough evidence to conclude a linear relationship between change in propionate and propionate generator abundance in individuals whose mean propionate decreased from week 1 to week 3.
+
+prop_conc_plot <- test_data %>%
+ ggplot(aes(x = proprionate_value,
+             y = prop_abundance)) + 
+  geom_point() + 
+  geom_smooth(method = "lm",
+              se = FALSE) +
+  xlab("Mean Propionate (mmol/kg)") + 
+  ylab("Propionate Generator Abundance") 
+prop_conc_plot
+
+# Correlation test
+m_conc <- test_data %>%
+  lm(proprionate_value ~ prop_abundance, data = .)
+summary(m_conc)
+# p-value = 0.4917, there is not enough evidence to conclude a linear relationship between mean propionate and propionate generator abundance in individuals whose mean propionate decreased from week 1 to week 3.
+
+
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
