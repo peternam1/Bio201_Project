@@ -111,7 +111,7 @@ graph_Himaize <- ggplot(HiMaize_weekly, aes(x = week3)) + geom_histogram() #p=0.
 
 save_plot(filename = "Yilin/figures/HiMaize_distribution.pdf", 
           plot= graph_Himaize,
-           nrow = 3, ncol = 6, 
+          nrow = 3, ncol = 6, 
           base_aspect_ratio = 1.1)
 
 shapiro.test(HiMaize_BRMPS_weekly$week1) 

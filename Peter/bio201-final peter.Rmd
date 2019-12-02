@@ -220,7 +220,7 @@ wilcox.test(x = scfa_weekly_ace_HiMaize$week1,
 HiMaize_weekly_delta <- HiMaize_weekly %>% 
 mutate(delta_propionate = week3 - week1) %>% 
 #U043, #0U52 #0U57 #U369 #U377 #U379 #U382 #U387 #U388 #U390 de#U392
-gather(key=study_week, value= proprionate_value, week1:week3)
+gather(key = study_week, value = proprionate_value, week1:week3)
 
 HiMaize_weekly_decrease <- HiMaize_weekly_delta %>%
 filter(delta_propionate < 0)
@@ -256,9 +256,9 @@ filter(delta_propionate < 0)
 sample_data_long <- psmelt(physq_obj) %>%
 rename_all(tolower) %>%
 rename(tax_name = otu ) %>%
-   filter(abundance > 0)
+   filter(abundance < 0)
 
-generator_info<-read_delim(file = "Peter/tax_scfa.txt",
+generator_info <- read_delim(file = "Peter/tax_scfa.txt",
                         delim = "\t", col_names = TRUE, trim_ws = TRUE, 
                         na = c("", "NA")) %>%
   rename_all(tolower) %>%
@@ -329,4 +329,20 @@ summary(m_conc)
 
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+
+# fall 2015 
+
+
+
+
+
+
+
+
+
+
+
+
+```
