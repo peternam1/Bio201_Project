@@ -273,7 +273,7 @@ sample_data_long_cut <- sample_data_long %>%
 relative_sample <- unique(relative_sample [,c("sample","tax_name", "category", "abundance", "delta_propionate", "proprionate_value")])
 
 # week 3 data with matched metabolic identities
-grep_week3<- relative_sample[grep("week3", relative_sample$sample), ]
+grep_week3 <- relative_sample[grep("week3", relative_sample$sample), ]
 
 # relative abundance of proprionate generators in week 3 in participants who consume HiMaize
 prop_gen_abd <- grep_week3 %>%
@@ -333,6 +333,105 @@ summary(m_conc)
 ```{r}
 
 # fall 2015 
+grep_week1<- relative_sample[grep("week1", relative_sample$sample), ]
+prop_gen_abd_1 <- grep_week1 %>%
+filter (category == "propionate_gen") %>%
+select(-tax_name) %>%
+group_by(sample) %>%
+summarize(prop_abundance = sum(abundance))
+gen_abd_1<- prop_gen_abd_1 %>%
+mutate(Participant_ID = paste(sample)) %>% #copy column
+separate(Participant_ID, 
+         sep = "_", 
+         into = c("Participant_ID", "study_week")) %>%
+  select(-sample,-study_week) %>% 
+  rename(prop_abundance_wk1 = prop_abundance)
+  
+delta_propionate <- grep_week1 %>%
+  select(sample,delta_propionate,proprionate_value)%>%
+    distinct(., sample, .keep_all = TRUE) 
+graph_data_1<- inner_join(prop_gen_abd_1,delta_propionate,
+                        by = ("sample"))
+prop_gen_abd <- grep_week3 %>%
+filter (category == "propionate_gen") %>%
+group_by(sample) %>%
+summarize(prop_abundance = sum(abundance))
+  gen_abd_3 <- prop_gen_abd %>%
+mutate(Participant_ID = paste(sample)) %>% #copy column
+separate(Participant_ID, 
+         sep = "_", 
+         into = c("Participant_ID", "study_week")) %>%
+  select(-sample,-study_week) %>% 
+  rename(prop_abundance_wk3 = prop_abundance)
+prop_gen_abd_all <- inner_join(gen_abd_1,gen_abd_3,
+                              by = c("Participant_ID")) %>%
+mutate(delta_abundance = prop_abundance_wk3 - prop_abundance_wk1)
+
+
+# Fall 2015 Correlation Between Propionate Change and Abundance Change
+merged_data <- read_delim(file = "Peter/merged_data.txt",
+                        delim = "\t", col_names = TRUE, trim_ws = TRUE, 
+                        na = c("", "NA"))
+
+fall_sem_plot <- merged_data %>%
+   filter(semester == "Fall2015") %>%
+   ggplot(aes(x = delta_propionate,
+              y = delta_abundance)) +
+   geom_point() +
+   geom_smooth(method = "lm",
+               se = FALSE) +
+   xlab("Delta Propionate") +
+   ylab("Change in Propionate Gen. Abundance")
+
+fall_sem_plot
+
+save_plot(filename = "Peter/figures/fall2015_prop_abund.pdf", 
+          plot= fall_sem_plot,
+           nrow = 2, ncol = 3, 
+          base_aspect_ratio = 1.1)
+
+m_fall <- merged_data %>%
+   filter(semester == "Fall2015") %>%
+   lm(delta_propionate ~ delta_abundance, data = .)
+summary(m_fall) # p-value = 0.1193, there is not enough evidence to conclude a linear relationship between propionate change and change in propionate generators in participants who consumed HiMaize during the Fall 2015 semester.
+
+# Fall 2015 vs Winter 2017
+
+# delta propionate
+sem_comparison_dprop <- merged_data %>%
+   ggplot(aes(x = semester, 
+             y = delta_propionate, 
+             color = semester)) +
+  geom_violin() + geom_jitter() + 
+  xlab("Semester") + 
+  ylab("Change in Propionate") + 
+  theme(legend.position = "none")
+  
+  sem_comparison_dprop
+ 
+save_plot(filename = "Peter/figures/semester_delta_prop.pdf", 
+          plot= sem_comparison_dprop,
+           nrow = 2, ncol = 3, 
+          base_aspect_ratio = 1.1)
+
+
+# delta abundance 
+sem_comparison_dabund <- merged_data %>%
+   ggplot(aes(x = semester, 
+             y = delta_abundance,
+             color = semester)) +
+  geom_violin() + geom_jitter() + 
+  xlab("Semester") + 
+  ylab("Change in Propionate Generators") + 
+  theme(legend.position = "none")
+  
+  sem_comparison_dabund
+  
+save_plot(filename = "Peter/figures/semester_delta_abund.pdf", 
+          plot= sem_comparison_dabund,
+           nrow = 2, ncol = 3, 
+          base_aspect_ratio = 1.1)
+
 
 
 
