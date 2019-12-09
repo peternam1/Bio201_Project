@@ -1,0 +1,17 @@
+participant_id	frequency	semester	supplement_consumed	quantity_compliant	week1	week3
+U700	1xdaily	Winter2019	LOODAT	yes	8.13	9.54
+U701	1xdaily	Winter2019	LOODAT	yes	4.67	7.57
+U706	1xdaily	Winter2019	LOODAT	yes	16.26	7.65
+U707	1xdaily	Winter2019	LOODAT	yes	6.06	8.03
+U708	1xdaily	Winter2019	LOODAT	yes	8.29	10.31
+U710	1xdaily	Winter2019	LOODAT	yes	7.32	4.32
+U711	1xdaily	Winter2019	LOODAT	yes	11.79	4.4
+U712	1xdaily	Winter2019	LOODAT	yes	9.98	17.29
+U713	1xdaily	Winter2019	LOODAT	yes	6.41	15.39
+U715	1xdaily	Winter2019	LOODAT	yes	18.36	16
+U716	1xdaily	Winter2019	LOODAT	yes	4.94	5.18
+U717	1xdaily	Winter2019	LOODAT	yes	19.1	6.07
+U719	1xdaily	Winter2019	LOODAT	yes	15.41	9.29
+U720	1xdaily	Winter2019	LOODAT	yes	21.55	15.17
+U721	1xdaily	Winter2019	LOODAT	yes	9.91	7.66
+U723	1xdaily	Winter2019	LOODAT	yes	18.57	4.31

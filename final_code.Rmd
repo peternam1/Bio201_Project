@@ -1,0 +1,813 @@
+---
+title: "BIO201 final presentation"
+author: Kasey Neff, Yilin Guan, Peter Nam
+date: 12.9.19
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "~/Documents/Bio201_Project/")
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r Load packages, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+library(tidyverse)
+library(readxl)
+library(broom)
+library(cowplot)
+library(agricolae)
+library(phyloseq)
+set.seed(7)
+```
+
+# What supplements cause increase in propionate?
+```{r}
+ scfa_weekly <- read_delim(file = "~/Documents/Bio201_Project/final_project_data/DB_v_0.08/SCFA_wkly.txt",
+                        delim = "\t", col_names = TRUE, trim_ws = TRUE, 
+                        na = c("", "NA")) %>%
+   rename_all(tolower) %>%
+   filter(quantity_compliant == "yes" | quantity_compliant == "none", study_week == "week1" | study_week == "week3") %>% 
+   select(-starts_with("ace"), -starts_with("but"), -ends_with("median")) %>% 
+   spread(study_week, propionate_mean) # separate propionate measurements from week 1 and week 3
+   
+ # Filter for individuals who consumed Accessible
+Accessible_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Accessible")
+ 
+ # Filter for individuals who consumed no supplement
+none_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "none")
+  
+# Filter for individuals who consumed BRMPS
+BRMPS_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "BRMPS")
+
+# Filter for individuals who consumed Arabino
+Arabino_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Arabino")
+
+# Filter for individuals who consumed HiMaize
+HiMaize_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "HiMaize")
+
+# Filter for individuals who consumed Inulin
+Inulin_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Inulin")
+
+# Filter for individuals who consumed Psyllium and BRMPS
+Psyllium_BRMPS_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Psyllium+BRMPS")
+
+# Filter for individuals who consumed Psyllium
+Psyllium_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "Psyllium")
+
+# Filter for individuals who consumed BRMPS and Accessible
+BRMPS_Accessible_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "BRMPS+Accessible")
+
+# Filter for individuals who consumed LOODAT
+LOODAT_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "LOODAT")
+
+# Filter for individuals who consumed transition HiMaize
+transition_HiMaize_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "transition_HiMaize")
+
+# Filter for individuals who consumed HiMaize and BRMPS
+HiMaize_BRMPS_weekly <- scfa_weekly %>%
+   filter(!is.na(supplement_consumed)) %>%
+   filter (supplement_consumed == "HiMaize+BRMPS")
+
+# Saved data frames
+write_delim(Accessible_weekly, path = "~/Documents/Bio201_Project/curated_data/Accessible_weekly.txt", delim = "\t") 
+write_delim(none_weekly, path = "~/Documents/Bio201_Project/curated_data/none_weekly.txt", delim = "\t") 
+write_delim(BRMPS_weekly, path = "~/Documents/Bio201_Project/curated_data/BRMPS_weekly.txt", delim = "\t") 
+write_delim(HiMaize_weekly, path = "~/Documents/Bio201_Project/curated_data/HiMaize_weekly.txt", delim = "\t") 
+write_delim(Inulin_weekly, path = "~/Documents/Bio201_Project/curated_data/Inulin_weekly.txt", delim = "\t") 
+write_delim(Psyllium_BRMPS_weekly, path = "~/Documents/Bio201_Project/curated_data/Psyllium_BRMPS_weekly.txt", delim = "\t") 
+write_delim(Psyllium_weekly, path = "~/Documents/Bio201_Project/curated_data/Psyllium_weekly.txt", delim = "\t") 
+write_delim(BRMPS_Accessible_weekly, path = "~/Documents/Bio201_Project/curated_data/BRMPS_Accessible_weekly.txt", delim = "\t") 
+write_delim(LOODAT_weekly, path = "~/Documents/Bio201_Project/curated_data/LOODAT_weekly.txt", delim = "\t") 
+write_delim(transition_HiMaize_weekly, path = "~/Documents/Bio201_Project/curated_data/transition_HiMaize_weekly.txt", delim = "\t") 
+write_delim(HiMaize_BRMPS_weekly, path = "~/Documents/Bio201_Project/curated_data/HiMaize_BRMPS_weekly.txt", delim = "\t") 
+```
+
+
+## Assumptions and T-Test for Supplements 
+```{r}
+# Accessible 
+# Sample Size
+scfa_weekly %>% 
+  filter(supplement_consumed == "Accessible") %>% 
+   summarize(sample_size = n()) # week1 n=31 & week3 n=32, not use the NA 
+# Normality
+shapiro.test(Accessible_weekly$week1) 
+ggplot(Accessible_weekly, aes(x = week1)) + geom_histogram() # p-value = 0.001208, skewed to the right -> not normal 
+shapiro.test(Accessible_weekly$week3) 
+ggplot(Accessible_weekly, aes(x = week3)) + geom_histogram() # p-value = 0.0006834, skewed to the right -> not normal
+# Equal Variance
+var.test(x = Accessible_weekly$week1, 
+         y = Accessible_weekly$week3, 
+         alternative = "two.sided") # p-value = 0.2249, variances are not equal
+# Statistical Test (Wilcoxon because data is nonparametric)
+Accessible_weekly <- na.omit(Accessible_weekly) 
+wilcox.test(x = Accessible_weekly$week1, 
+            y = Accessible_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+#the p value for the wilcox is 0.45, which is not less than 0.05 and fails to reject the null. There is not sufficient evidence to conclude that the propionate concentration for week 1 and week 3 changed significantly in individuals who consumed Accessible.
+
+# Arabino
+# Sample Size
+scfa_weekly %>% 
+  filter(supplement_consumed == "Arabino") %>% 
+  summarize(sample_size = n()) # week1 n=17 & week3 n=13, not use the NA -> WILCOXON
+# Normality
+shapiro.test(Arabino_weekly$week1) 
+ggplot(Arabino_weekly, aes(x = week1)) + geom_histogram() # p-value = 0.01328, skewed to the right -> not normal 
+shapiro.test(Arabino_weekly$week3) 
+ggplot(Arabino_weekly, aes(x = week3)) + geom_histogram() # p-value = 0.5143, sort of normal shaped -> normal
+# Equal Variance
+var.test(x = Arabino_weekly$week1, 
+         y = Arabino_weekly$week3, 
+         alternative = "two.sided") # p-value = 0.6808, variances are equal
+# Statistical Test (Wilcoxon because data is nonparametric)
+Arabino_weekly <- na.omit(Arabino_weekly) 
+wilcox.test(x = Arabino_weekly$week1, 
+            y = Arabino_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+# p-value = 0.0874, which is larger than 0.05 we fail to reject the null. There is not sufficient evidence to conclude that the propionate concentration for week 1 and week 3 changed significantly in individuals who consumed Arabino. 
+
+# BRMPS
+# Sample Size
+scfa_weekly %>% 
+  filter(supplement_consumed == "BRMPS") %>% 
+  summarize(sample_size = n()) # week1 n=151 & week3 n=151, not use the NA 
+# Normality
+shapiro.test(BRMPS_weekly$week1) 
+ggplot(BRMPS_weekly, aes(x = week1)) + geom_histogram() # p-value = 6.225e-06, bimodal and skewed to the right -> not normal
+shapiro.test(BRMPS_weekly$week3) 
+ggplot(BRMPS_weekly, aes(x = week3)) + geom_histogram() # p-value = 1.357e-09, skewed to the right -> not normal
+# Equal Variance
+var.test(x = BRMPS_weekly$week1, 
+         y = BRMPS_weekly$week3, 
+         alternative = "two.sided") # p-value = 0.01992, variances are not equal
+# Statistical Test (Wilcoxon because data is nonparametric)
+BRMPS_weekly <- na.omit(BRMPS_weekly) 
+wilcox.test(x = BRMPS_weekly$week1, 
+            y = BRMPS_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+# p-value = 0.8386, which is larger than 0.05 and we fail to reject the null. There is not sufficient evidence to conclude that the propionate concentration for week 1 and week 3 changed significantly in individuals who consumed BRMPS.
+
+# BRMPS + Accessible
+# Sample Size
+scfa_weekly %>% 
+  filter(supplement_consumed == "BRMPS+Accessible") %>% 
+  summarize(sample_size = n()) # week1 n=17 & week3 n=16, not use the NA -> WILCOXON
+# Normality
+shapiro.test(BRMPS_Accessible_weekly$week1) 
+ggplot(BRMPS_Accessible_weekly, aes(x = week1)) + geom_histogram() # p-value = 0.202, sort of bimodal and very spread out
+shapiro.test(BRMPS_Accessible_weekly$week3) 
+ggplot(BRMPS_Accessible_weekly, aes(x = week3)) + geom_histogram() # p-value = 0.02685, skewed to the right -> not normal
+# Equal Variance
+var.test(x = BRMPS_Accessible_weekly$week1, 
+         y = BRMPS_Accessible_weekly$week3, 
+         alternative = "two.sided") # p-value = 0.9149, variances are equal
+# Statistical Test (Wilcoxon because data is nonparametric)
+BRMPS_Accessible_weekly <- na.omit(BRMPS_Accessible_weekly) 
+wilcox.test(x = BRMPS_Accessible_weekly$week1, 
+            y = BRMPS_Accessible_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+# p-value = 0.45, which is not less than 0.05 and we fail to reject the null. There is not sufficient evidence to conclude that the propionate concentration for week 1 and week 3 changed significantly in individuals who consumed BRMPS and Accessible. 
+
+# HiMaize
+# Sample Size
+scfa_weekly %>% 
+  filter(supplement_consumed == "HiMaize") %>% 
+  summarize(sample_size = n()) # week1 n=36 & week3 n=36, not use the NA 
+# Normality
+shapiro.test(HiMaize_weekly$week1) 
+ggplot(HiMaize_weekly, aes(x = week1)) + geom_histogram() # p-value = 0.001113, skewed to the right -> not normal 
+shapiro.test(HiMaize_weekly$week3) 
+graph_Himaize <- ggplot(HiMaize_weekly, aes(x = week3)) + geom_histogram() # p-value = 0.001003, skewed to the right -> not normal
+# Equal Variance
+var.test(x = HiMaize_weekly$week1, 
+         y = HiMaize_weekly$week3, 
+         alternative = "two.sided") # p-value = 0.1558, variances are equal
+# Statistical Test (Wilcoxon because data is nonparametric)
+HiMaize_weekly <- na.omit(HiMaize_weekly) 
+wilcox.test(x = HiMaize_weekly$week1, 
+            y = HiMaize_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+# p-value = 0.01215, which is less than 0.05 and we reject the null. There is evidence that the propionate concentration for week 1 and week 3 are not the same in individuals who consumed HiMaize. 
+
+# HiMaize + BRMPS
+# Sample Size
+scfa_weekly %>% 
+  filter(supplement_consumed == "HiMaize+BRMPS") %>% 
+  summarize(sample_size = n()) # week1 n=21 & week3 n=22, not use the NA - WILCOX
+# Normality
+shapiro.test(HiMaize_BRMPS_weekly$week1) 
+ggplot(HiMaize_BRMPS_weekly, aes(x = week1)) + geom_histogram() # p-value = 0.7258, normal shape -> yet p value to big->not normal
+shapiro.test(HiMaize_BRMPS_weekly$week3) 
+ggplot(HiMaize_BRMPS_weekly, aes(x = week3)) + geom_histogram() # p-value = 0.8131, normal shape -> yet p value to big->not normal
+# Equal Variance
+var.test(x = HiMaize_BRMPS_weekly$week1, 
+         y = HiMaize_BRMPS_weekly$week3, 
+         alternative = "two.sided") # p-value = 0.5405, variances are equal
+# Statistical Test (Wilcoxon because data is nonparametric)
+HiMaize_BRMPS_weekly <- na.omit(HiMaize_BRMPS_weekly) 
+wilcox.test(x = HiMaize_BRMPS_weekly$week1, 
+            y = HiMaize_BRMPS_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+# p-value = 0.9937, which is larger than 0.05 and we fail to reject the null. There is not sufficient evidence to conclude that the propionate concentration for week 1 and week 3 changed significantly in individuals who consumed HiMaize and BRMPS.
+
+# Inulin
+# Sample Size
+scfa_weekly %>% 
+  filter(supplement_consumed == "Inulin") %>% 
+  summarize(sample_size = n()) # week1 n=44 & week3 n=41, not use the NA 
+# Normality
+shapiro.test(Inulin_weekly$week1) 
+ggplot(Inulin_weekly, aes(x = week1)) + geom_histogram() # p-avlue = 0.001972, kewed to the right -> not normal
+shapiro.test(Inulin_weekly$week3) 
+ggplot(Inulin_weekly, aes(x = week3)) + geom_histogram() # p-value = 0.003415, kewed to the right -> not normal
+# Equal Variance
+var.test(x = Inulin_weekly$week1, 
+         y = Inulin_weekly$week3, 
+         alternative = "two.sided") # p-value = 0.3398, variances are equal
+# Statistical Test (Wilcoxon because data is nonparametric)
+Inulin_weekly <- na.omit(Inulin_weekly) 
+wilcox.test(x = Inulin_weekly$week1, 
+            y = Inulin_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+# p-value = 0.2978, which is larger than 0.05 and we fail to reject the null. There is not sufficient evidence to conclude that the propionate concentration for week 1 and week 3 changed significantly in individuals who consumed Inulin.
+
+# LOODAT
+# Sample Size
+scfa_weekly %>% 
+  filter(supplement_consumed == "LOODAT") %>% 
+  summarize(sample_size = n()) # week1 n=16 & week3 n=16, not use the NA - WILCOX
+# Normality
+shapiro.test(LOODAT_weekly$week1) 
+ggplot(LOODAT_weekly, aes(x = week1)) + geom_histogram() # p-value = 0.09729, sort of bimodal and very spread out-> Not normal
+shapiro.test(LOODAT_weekly$week3) 
+ggplot(LOODAT_weekly, aes(x = week3)) + geom_histogram() # p-value = 0.0366, sort of bimodal large space in between-> Not normal
+# Equal Variance
+var.test(x = LOODAT_weekly$week1, 
+         y = LOODAT_weekly$week3, 
+         alternative = "two.sided") # p-value = 0.3428, variances are equal
+# Statistical Test (Wilcoxon because data is nonparametric)
+LOODAT_weekly <- na.omit(LOODAT_weekly) 
+wilcox.test(x = LOODAT_weekly$week1, 
+            y = LOODAT_weekly$week3, 
+            alternative = "less", paired = TRUE, var.equal = TRUE)
+# p-value = 0.9123, which is larger than 0.05 and we fail to reject the null. There is not sufficient evidence to conclude that the propionate concentration for week 1 and week 3 changed significantly in individuals who consumed LOODAT. 
+
+# No Supplement
+# Sample Size
+scfa_weekly %>% 
+  filter(supplement_consumed == "none") %>% 
+  summarize(sample_size = n()) # week 1 = 26, week 3 = 28
+# Normality 
+shapiro.test(none_weekly$week1) 
+ggplot(none_weekly, aes(x = week1)) + geom_histogram() # p-value = 0.01, not normal
+shapiro.test(none_weekly$week3) 
+ggplot(none_weekly, aes(x = week3)) + geom_histogram() # p-value = 0.002, not normal
+# Equal Variance
+var.test(x = none_weekly$week1, 
+         y = none_weekly$week3, 
+         alternative = "two.sided") # p-value = 0.66, variances considered equal
+# Statistical Test (Wilcoxon because data is nonparametric)
+wilcox.test(x = none_weekly$week1,
+            y = none_weekly$week3,
+            alternative = "less", paired = TRUE, var.equal = TRUE, na.rm = TRUE) 
+# p-value = 0.12, which is larger than 0.05 and we fail to reject the null. there is not sufficient evidence to conclude a change in propionate from week 1 to week 3 in individuals who consumed no supplement.
+
+# Psyllium
+# Sample Size
+scfa_weekly %>% 
+  filter(supplement_consumed == "Psyllium") %>% 
+  summarize(sample_size = n()) # week 1 = 12, week 3 = 16
+# Normality
+shapiro.test(Psyllium_weekly$week1) 
+ggplot(Psyllium_weekly, aes(x = week1)) + geom_histogram() # p-value = 1, normal
+shapiro.test(Psyllium_weekly$week3) 
+ggplot(Psyllium_weekly, aes(x = week3)) + geom_histogram() # p-value = 0.12, normal
+# Equal Variance
+var.test(x = Psyllium_weekly$week1, 
+         y = Psyllium_weekly$week3, 
+         alternative = "two.sided") # p-value = 0.41, variances considered equal
+# Statistical Test (Wilcoxon because data is nonparametric)
+wilcox.test(x = Psyllium_weekly$week1,
+            y = Psyllium_weekly$week3,
+            alternative = "less", paired = TRUE, var.equal = TRUE, na.rm = TRUE)
+# p-value = 0.62, which is larger than 0.05 and we fail to reject the null. There is not sufficient evidence to conclude a change in propionate from week 1 to week 3 in individuals who consumed Psyllium.
+
+# Psyllium + BRMPS
+# Sample Size
+scfa_weekly %>% 
+  filter(supplement_consumed == "Psyllium+BRMPS") %>% 
+  summarize(sample_size = n()) # week 1 = 14, week 3 = 15
+# Normality 
+shapiro.test(Psyllium_BRMPS_weekly$week1) 
+ggplot(Psyllium_BRMPS_weekly, aes(x = week1)) + geom_histogram() # p-value = 0.07, not normal
+shapiro.test(Psyllium_BRMPS_weekly$week3) 
+ggplot(Psyllium_BRMPS_weekly, aes(x = week3)) + geom_histogram() # p-value = 0.60, normal
+# Equal Variance
+var.test(x = Psyllium_BRMPS_weekly$week1, 
+         y = Psyllium_BRMPS_weekly$week3, 
+         alternative = "two.sided") # p-value = 0.04, variances considered unequal
+# Statistical Test (Wilcoxon because data is nonparametric)
+wilcox.test(x = Psyllium_BRMPS_weekly$week1,
+            y = Psyllium_BRMPS_weekly$week3,
+            alternative = "less", paired = TRUE, var.equal = FALSE, na.rm = TRUE)
+# p-value = 0.88, which is larger than 0.05 and we fail to reject the null. There is not sufficient evidence to conclude a change in propionate from week 1 to week 3 in individuals who consumed Psyllium and BRMPS.
+
+# Transition HiMaize
+# Sample Size
+scfa_weekly %>% 
+  filter(supplement_consumed == "transition_HiMaize") %>% 
+  summarize(sample_size = n()) # week 1 = 27, week 3 = 27
+# Normality 
+shapiro.test(transition_HiMaize_weekly$week1) 
+ggplot(transition_HiMaize_weekly, aes(x = week1)) + geom_histogram() # p-value = 0.60, normal
+shapiro.test(transition_HiMaize_weekly$week3) 
+ggplot(transition_HiMaize_weekly, aes(x = week3)) + geom_histogram() # p-value = 0.0004, not normal
+# Equal Variance
+var.test(x = transition_HiMaize_weekly$week1, 
+         y = transition_HiMaize_weekly$week3, 
+         alternative = "two.sided") # p-value = 0.92, variances considered equal
+# Statistical Test (Wilcoxon because data is nonparametric)
+wilcox.test(x = transition_HiMaize_weekly$week1,
+            y = transition_HiMaize_weekly$week3,
+            alternative = "less", paired = TRUE, var.equal = TRUE, na.rm = TRUE)
+# p-value = 0.97, which is larger than 0.05 and we fail to reject the null. There is not sufficient evidence to conclude a change in propionate from week 1 to week 3 in individuals who consumed transition HiMaize.
+```
+
+## Plots!
+
+### Correlation plots
+```{r}
+# delta changes we first calculate the change of produced proprionates in the population who consumes the Hi_Maize supplement. Then, we filter out students who show decreases in propriate.
+
+HiMaize_weekly_delta <- HiMaize_weekly %>% 
+mutate(delta_propionate = week3 - week1) %>% 
+gather(key=study_week, value= proprionate_value, week1:week3)
+
+write_delim(HiMaize_weekly_delta, path = "~/Documents/Bio201_Project/curated_data/long_priop_delta.txt", delim = "\t") 
+
+long_priop_delta_table <- HiMaize_weekly_delta %>% 
+  mutate(sample_id = paste(participant_id, study_week, sep="_")) %>% #cobine two columns to make new column
+  column_to_rownames(var = "sample_id") %>%
+sample_data(.)
+
+# seq var info 
+all_data_indv <- read_delim("final_project_data/species_avg_shared.txt", 
+                            delim = "\t", escape_double = FALSE, 
+                            trim_ws = TRUE, 
+                            col_types = cols()) %>%
+  
+  rename_all(tolower) %>% 
+  filter(semester == "Winter2017" | semester == "Fall2015") %>%
+  select(-semester) %>% 
+  mutate(sample_id = paste(participant_id, study_week, sep="_")) %>% 
+  distinct(., sample_id, .keep_all = TRUE) %>% 
+  column_to_rownames(var = "sample_id") %>% 
+  select(-participant_id, -study_week) %>%
+  as.matrix() %>% 
+  otu_table(., taxa_are_rows = FALSE) 
+
+# merge all three data frames into phyloseq object
+physq_obj <- phyloseq(all_data_indv, long_priop_delta_table) 
+physq_obj 
+
+#long format of species and people data
+sample_data_long <- psmelt(physq_obj) %>%
+rename_all(tolower) %>%
+rename(tax_name = otu ) %>%
+   filter(abundance > 0)
+
+generator_info<-read_delim(file = "~/Documents/Bio201_Project/raw_data/tax_scfa.txt",
+                        delim = "\t", col_names = TRUE, trim_ws = TRUE, 
+                        na = c("", "NA")) %>%
+  rename_all(tolower) %>%
+select(tax_name, category, phylum)
+ generator_info$tax_name <- tolower(generator_info$tax_name)
+sample_data_long_cut <- sample_data_long %>%
+    select(sample, tax_name, abundance,delta_propionate, proprionate_value,semester)
+ relative_sample <- inner_join(sample_data_long_cut,generator_info,
+                               by = ("tax_name")) 
+relative_sample <- unique(relative_sample [,c("sample","tax_name", "category", "abundance", "delta_propionate", "proprionate_value")])
+```
+
+### tidy data for correlation
+```{r pressure, echo=FALSE}
+#week 3 data with mached metabolic identities
+grep_week3<- relative_sample[grep("week3", relative_sample$sample), ]
+
+#relative abundance of proprionate generators in week 3 in participants who consume himaze
+prop_gen_abd <- grep_week3 %>%
+filter (category == "propionate_gen") %>%
+group_by(sample) %>%
+summarize(prop_abundance = sum(abundance))
+delta_propionate <- grep_week3 %>%
+  select(sample,delta_propionate,proprionate_value)%>%
+    distinct(., sample, .keep_all = TRUE) 
+graph_data<- inner_join(prop_gen_abd,delta_propionate,
+                        by = ("sample"))
+
+#propionate generator abundance for group1
+grep_week1<- relative_sample[grep("week1", relative_sample$sample), ]
+prop_gen_abd_1 <- grep_week1 %>%
+filter (category == "propionate_gen") %>%
+select(-tax_name) %>%
+group_by(sample) %>%
+summarize(prop_abundance = sum(abundance))
+gen_abd_1<- prop_gen_abd_1 %>%
+mutate(Participant_ID = paste(sample)) %>% #copy column
+separate(Participant_ID, 
+         sep = "_", 
+         into = c("Participant_ID", "study_week")) %>%
+  select(-sample,-study_week) %>% 
+  rename(prop_abundance_wk1 = prop_abundance)
+  
+delta_propionate <- grep_week1 %>%
+  select(sample,delta_propionate,proprionate_value)%>%
+    distinct(., sample, .keep_all = TRUE) 
+graph_data_1<- inner_join(prop_gen_abd_1,delta_propionate,
+                        by = ("sample"))
+prop_gen_abd <- grep_week3 %>%
+filter (category == "propionate_gen") %>%
+group_by(sample) %>%
+summarize(prop_abundance = sum(abundance))
+  gen_abd_3 <- prop_gen_abd %>%
+mutate(Participant_ID = paste(sample)) %>% 
+separate(Participant_ID, 
+         sep = "_", 
+         into = c("Participant_ID", "study_week")) %>%
+  select(-sample,-study_week) %>% 
+  rename(prop_abundance_wk3 = prop_abundance)
+prop_gen_abd_all <- inner_join(gen_abd_1,gen_abd_3,
+                              by = c("Participant_ID")) %>%
+mutate(delta_abundance = prop_abundance_wk3 - prop_abundance_wk1)
+
+```
+## relationship with propionate generators 
+```{r pressure, echo=FALSE}
+ graph_data_1 <- graph_data%>% 
+  filter(delta_propionate >0)
+mean(graph_data_1$delta_propionate) #average of 4.5 % increase. 
+ graph_data_6 <- graph_data %>% 
+     filter(delta_propionate < 0)
+mean(graph_data_6$delta_propionate)
+
+# plot to determine whether there is a relationship between propionate abundance and positive delta_propionate of participants who consume Hi_Maize
+plot_prop_delta<- graph_data_1 %>%
+ ggplot(aes(x = delta_propionate,
+             y = prop_abundance)) + 
+  geom_point() + #puts data points to match x and y coordinates
+  geom_smooth(method = "lm", #used to create a linear best fit line
+              se = FALSE) + #hides confidence interval around line 
+  xlab("change in propionate  (mmol/kg)") + 
+  ylab("propionate generator abundance") 
+plot_prop_delta
+#correlation test
+m_delta <- graph_data_1 %>%
+  lm(delta_propionate ~ prop_abundance, data = .) #test relationship
+summary(m_delta) #view results 
+#the p value is  0.5892, larger than 0.05, which means we can't use the linear model to interpreate the correlation that there could some linear relationship about delta_propionatae and propionat generator abudance;
+#is there a relationship between propionate generator abundance and the propionate value in group who show's increase in propionate value?
+
+# plot to determine whether there is a relationship between propionate abundance and negative delta_propionate of participants who consume Hi_Maize
+prop_plot <- graph_data_6 %>%
+ ggplot(aes(x = delta_propionate,
+             y = prop_abundance)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", 
+              se = FALSE) + 
+  xlab("Change in Propionate (mmol/kg)") + 
+  ylab("Propionate Generator Abundance") 
+prop_plot
+# Correlation test
+m_delta <- graph_data_6 %>%
+  lm(delta_propionate ~ prop_abundance, data = .) 
+summary(m_delta)
+# p-value = 0.9915, there is not enough evidence to conclude a linear relationship between change in propionate and propionate generator abundance in individuals whose mean propionate decreased from week 1 to week 3.
+
+
+plot_prop_value<- graph_data_1 %>%
+ ggplot(aes(x = proprionate_value,
+             y = prop_abundance)) + 
+  geom_point() + #puts data points to match x and y coordinates
+  geom_smooth(method = "lm", #used to create a linear best fit line
+              se = FALSE) + #hides confidence interval around line 
+  xlab("mean propionate (mmol/kg)") + 
+  ylab("propionate generator abundance") 
+plot_prop_value
+#correlation test
+m_value <- graph_data_1 %>%
+  lm(proprionate_value ~ prop_abundance, data = .) #test relationship
+summary(m_value) #view results 
+#the p value is  0.536, larger than 0.05, which means we can't use the linear model to interpreate the correlation that there could some linear relationship about propionate value  and propionat generator abudance;
+
+prop_conc_plot <- graph_data_6 %>%
+ ggplot(aes(x = proprionate_value,
+             y = prop_abundance)) + 
+  geom_point() + 
+  geom_smooth(method = "lm",
+              se = FALSE) +
+  xlab("Mean Propionate (mmol/kg)") + 
+  ylab("Propionate Generator Abundance") 
+prop_conc_plot
+# Correlation test
+m_conc <- graph_data_6 %>%
+  lm(proprionate_value ~ prop_abundance, data = .)
+summary(m_conc)
+# p-value = 0.4917, there is not enough evidence to conclude a linear relationship between mean propionate and propionate generator abundance in individuals whose mean propionate decreased from week 1 to week 3.
+ 
+save_plot(filename = "figures/abundance_vs_mean.pdf", 
+          plot= plot_prop_delta,
+           nrow = 1, ncol = 2, 
+          base_aspect_ratio = 1.1)
+ 
+save_plot(filename = "figures/abundance_vs_delta.pdf", 
+          plot= plot_prop_value,
+           nrow = 1, ncol = 2, 
+          base_aspect_ratio = 1.1)
+```
+
+## correlation seperate by semester
+```{r pressure, echo=FALSE}
+#correlation: difference in semseter [since different semster have different pariticpants with different original gut microbiomes]; prop_gen abundance change by semseter (fall2015 vs winter 2017)
+
+# Fall 2015
+fall_sem_plot <- merged_data %>%
+   filter(semester == "Fall2015") %>%
+   ggplot(aes(x = delta_propionate,
+              y = delta_abundance)) +
+   geom_point() +
+   geom_smooth(method = "lm",
+               se = FALSE) +
+   xlab("Delta Propionate") +
+   ylab("Change in Propionate Gen. Abundance")
+fall_sem_plot
+save_plot(filename = "figures/fall2015_prop_abund.pdf", 
+          plot= fall_sem_plot,
+           nrow = 2, ncol = 3, 
+          base_aspect_ratio = 1.1)
+m_fall <- merged_data %>%
+   filter(semester == "Fall2015") %>%
+   lm(delta_propionate ~ delta_abundance, data = .)
+summary(m_fall) # p-value = 0.1193, there is not enough evidence to conclude a linear relationship between propionate change and change in propionate generators in participants who consumed HiMaize during the Fall 2015 semester.
+
+# Winter 2017 
+sample_data_semster <- sample_data_long %>%
+  select(semester, participant_id,delta_propionate,supplement_consumed)
+prop_gen_abd_all <- prop_gen_abd_all %>%
+  rename_all (tolower)
+#data with delta abundance, semster, and delta propionate
+merged_data<- inner_join(prop_gen_abd_all,sample_data_semster,
+           by = c("participant_id"))
+write_delim(merged_data, path = "~/Documents/Bio201_Project/curated_data/merged_data.txt", delim = "\t") 
+graph_3 <- merged_data  %>%
+  filter(semester == "Winter2017")
+plot_winter2017<- graph_3 %>%
+ ggplot(aes(x = delta_propionate,
+             y = delta_abundance)) + 
+  geom_point() + #puts data points to match x and y coordinates
+  geom_smooth(method = "lm", #used to create a linear best fit line
+              se = FALSE) + #hides confidence interval around line 
+  xlab("change in propionate (mmol/kg)") + 
+  ylab("delta abundance of propionate in students")
+plot_winter2017
+save_plot(filename = "figures/winter2017's delta abundance vs delta propionate .pdf", 
+          plot= plot_winter2017,
+           nrow = 1, ncol = 1, 
+          base_aspect_ratio = 1.1)
+#correlation test
+m_winter <- graph_3 %>%
+  lm(delta_propionate ~ delta_abundance, data = .) #test relationship
+summary(m_winter) #view results 
+#the p value is  0.7174, larger than 0.05, which means we can't use the linear model to interpreate the correlation. There is no linear relationship about delta propionate value and the change inpropionat generator abudance of students in winter2017;
+# (correlation: difference in abundance vs delta propionate (all)
+ plot_delta <- merged_data %>%
+ ggplot(aes(x = delta_propionate,
+             y = delta_abundance)) + 
+  geom_point() + #puts data points to match x and y coordinates
+  geom_smooth(method = "lm", #used to create a linear best fit line
+              se = FALSE) + #hides confidence interval around line 
+  xlab("change in propionate (mmol/kg)") + 
+  ylab("delta abundance of propionate generators for all")
+plot_delta
+save_plot(filename = "figures/all students' delta abundance vs delta propionate .pdf", 
+          plot= plot_delta,
+           nrow = 2, ncol = 2, 
+          base_aspect_ratio = 1.1)
+#correlation test
+m_delta <- merged_data %>%
+  lm(delta_propionate ~ delta_abundance, data = .) #test relationship
+summary(m_delta) #view results 
+#the p value is  0.8417, larger than 0.05, which means we can't use the linear model to interpreate the correlation. There is no linear relationship about delta propionate value and the change in propionat generator abudance for all students who consume HiMaize;
+
+
+```
+
+## delta abundance shown by graph & Is delta abundance of two semsters students the same? 
+```{r pressure, echo=FALSE}
+plot_abd <- merged_data %>%
+ggplot(aes(x = supplement_consumed, 
+             y = delta_abundance, 
+              supplement_consumed, semester)) +
+  geom_point(aes(color = "delta_abundance")) +
+    facet_grid(~semester, scales = "free")+
+   labs(x = "semester",
+       y = "change in abundance of propionate generators") +
+    theme(legend.position = "none")
+plot_abd
+
+sem_comparison_dabund <- merged_data %>%
+   ggplot(aes(x = semester, 
+             y = delta_abundance,
+             color = semester)) +
+  geom_violin() + geom_jitter() + 
+  xlab("Semester") + 
+  ylab("Change in Propionate Generators") + 
+  theme(legend.position = "none")
+  
+  sem_comparison_dabund
+  
+save_plot(filename = "figures/semester_delta_abund.pdf", 
+          plot= sem_comparison_dabund,
+           nrow = 2, ncol = 3, 
+          base_aspect_ratio = 1.1)
+save_plot(filename = "figures/delta_abundance_by_semester.pdf", 
+          plot= plot_abd,
+           nrow = 1, ncol = 2, 
+          base_aspect_ratio = 1.1)
+```
+
+###Ordination plot and propionate phyloseq objects
+```{r}
+# Created a phyloseq object in order to make the ordination plot. 
+read_delim("~/Documents/Bio201_Project/curated_data/long_priop_delta.txt", 
+                            delim = "\t", escape_double = FALSE, 
+                            trim_ws = TRUE, 
+                            col_types = cols()) 
+
+long_priop_delta_table <- long_priop_delta %>%  
+  mutate(sample_id = paste(participant_id, study_week, sep="_")) %>%
+  column_to_rownames(var = "sample_id") %>% 
+  sample_data(.) 
+
+all_data_indv <- read_delim("~/Documents/Bio201_Project/final_project_data/species_avg_shared.txt", 
+                            delim = "\t", escape_double = FALSE, 
+                            trim_ws = TRUE, 
+                            col_types = cols()) %>%
+  rename_all(tolower) %>% 
+  filter(semester == "Winter2017" | semester == "Fall2015") %>%
+  select(-semester) %>% 
+  mutate(sample_id = paste(participant_id, study_week, sep="_")) %>% 
+  distinct(., sample_id, .keep_all = TRUE) %>% 
+  column_to_rownames(var = "sample_id") %>% 
+  select(-participant_id, -study_week) %>%
+  as.matrix() %>% 
+  otu_table(., taxa_are_rows = FALSE) 
+
+# Merge all three data frames into phyloseq obj
+physq_obj <- phyloseq(all_data_indv, long_priop_delta_table) 
+physq_obj 
+
+# ordination plot
+physq_bc <- ordinate(physq_obj, 
+                      method = "NMDS", 
+                      k=2, maxit=100, try=50,
+                      distance = "bray")
+ordplot1 <- plot_ordination(physeq = physq_obj, 
+                     ordination = physq_bc, 
+                     type = "samples", 
+                     color = "study_week", 
+                     shape = "study_week") %>% 
+  plot(main = "Ordination Plot of Study Week & Semester Data")
+ordplot1 
+
+ordplot2 <- ordplot1 +
+  geom_point(size=2) + 
+  scale_color_manual(name = "Study week",
+                     values = c("coral3", 
+                                "skyblue3"),
+                     labels = c("week1", "week3")) +
+  scale_shape_manual(name = "Study week",
+                     values = c(7, 8),
+                     labels = c("week1", "week3"))
+ordplot2 
+
+save_plot(filename = "ordplot2.pdf",
+          plot = ordplot2,
+          nrow = 1, ncol = 2, 
+          base_aspect_ratio = 1.1)
+save_plot(filename = "ordplot1.pdf",
+          plot = ordplot1,
+          nrow = 1, ncol = 2, 
+          base_aspect_ratio = 1.1)
+```
+
+### Violin Plot -> To check whether or not the proprionate levels changed from week1 to week3, and to check how different the two semesters were. The two semesters looked very different, which could explain why our data looks very random and we found no correlelation. Each semester contains very different microbiomes, all that change in different ways in response to the supplement. 
+```{r}
+priop_violin <- long_priop_delta %>%
+  filter(study_week == "week1" | study_week == "week3") %>% 
+  ggplot(aes(x = study_week, 
+             y = proprionate_value,
+             color = study_week)) + 
+  geom_violin()
+priop_violin
+
+priop_violin2 <- long_priop_delta %>%
+  filter(semester == "Fall2015" | semester == "Winter2017") %>% 
+  ggplot(aes(x = semester, 
+             y = proprionate_value,
+             color = semester)) + 
+  geom_violin()
+priop_violin2
+  
+save_plot(filename = "figures/priop_violin.pdf",
+          plot = priop_violin,
+          nrow = 1, ncol = 2, 
+          base_aspect_ratio = 1.1)
+save_plot(filename = "figures/priop_violin2.pdf",
+          plot = priop_violin2,
+          nrow = 1, ncol = 2, 
+          base_aspect_ratio = 1.1)
+          
+#Bar plot to show the different bacterial compositions of the two semesters (phyloseq objects to bar plot)
+
+read_delim("~/Documents/Bio201_Project/final_project_data/phylum_avg_shared.txt", 
+                            delim = "\t", escape_double = FALSE, 
+                            trim_ws = TRUE, 
+                            col_types = cols()) 
+
+phylum_data <- phylum_avg_shared %>% 
+  rename_all(tolower) %>% 
+  filter(study_week == "week1" | study_week == "week3",
+         semester == "Fall2015" | semester == "Winter2017") %>%
+  mutate(sample_id = paste(participant_id, study_week, sep = "_")) %>%
+  select(-participant_id, -study_week, -semester) %>%
+  column_to_rownames(var = "sample_id") %>%
+  as.matrix() %>% #
+  otu_table(., taxa_are_rows = FALSE) 
+
+scfa_weekly_wide <- SCFA_wkly %>% 
+  rename_all(tolower) %>% 
+  filter(quantity_compliant == "yes", study_week == "week1" | study_week == "week3") %>% 
+  select(-starts_with("ace"), -starts_with("but"), -ends_with("median"))
+
+HiMaize_weekly_wide <- scfa_weekly_wide %>% 
+  filter(!is.na(supplement_consumed)) %>%
+  filter(supplement_consumed == "HiMaize") %>% 
+  mutate(sample_id = paste(participant_id, study_week, sep = "_")) %>% 
+  column_to_rownames(var = "sample_id") %>%
+  sample_data(.)
+  
+physq_phylum_obj <- phyloseq(phylum_data, HiMaize_weekly_wide) 
+physq_phylum_obj 
+physq_long <- physq_phylum_obj %>%
+  transform_sample_counts(function(x) {x/sum(x)} ) %>% 
+  psmelt() %>%
+  rename_all(tolower)
+
+phylum_plot <- ggplot(data = physq_long, 
+       aes(x = study_week, 
+           y = abundance, 
+           fill = otu)) + 
+  geom_col() + 
+  facet_grid(~semester) + 
+  xlab(NULL) + 
+  theme(axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5)) +  
+  ylab("Relative Abundance (Phyla > 0.1%)") 
+phylum_plot
+
+save_plot(filename = "phylum_plot.pdf",
+          plot = phylum_plot,
+          nrow = 1, ncol = 1, 
+          base_aspect_ratio = 3)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

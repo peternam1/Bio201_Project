@@ -1,0 +1,17 @@
+participant_id	frequency	semester	supplement_consumed	quantity_compliant	week1	week3
+U137	2xdaily	Winter2016	Psyllium+BRMPS	yes	5.48	15.16
+U139	2xdaily	Winter2016	Psyllium+BRMPS	yes	5.71	12.89
+U155	2xdaily	Winter2016	Psyllium+BRMPS	yes	28.54	18.96
+U157	2xdaily	Winter2016	Psyllium+BRMPS	yes	13.63	12.03
+U158	2xdaily	Winter2016	Psyllium+BRMPS	yes	13.73	6.88
+U159	2xdaily	Winter2016	Psyllium+BRMPS	yes	23.56	15.75
+U160	2xdaily	Winter2016	Psyllium+BRMPS	yes	23.31	13.39
+U167	2xdaily	Winter2016	Psyllium+BRMPS	yes	14.36	14.07
+U168	2xdaily	Winter2016	Psyllium+BRMPS	yes	29.56	19.21
+U169	2xdaily	Winter2016	Psyllium+BRMPS	yes	5.2	17.57
+U171	2xdaily	Winter2016	Psyllium+BRMPS	yes	12.14	10.81
+U172	2xdaily	Winter2016	Psyllium+BRMPS	yes	12.63	4.62
+U181	2xdaily	Winter2016	Psyllium+BRMPS	yes	NA	11.25
+U182	2xdaily	Winter2016	Psyllium+BRMPS	yes	12.13	5.83
+U190	2xdaily	Winter2016	Psyllium+BRMPS	yes	NA	11.7
+U193	2xdaily	Winter2016	Psyllium+BRMPS	yes	14.14	NA
