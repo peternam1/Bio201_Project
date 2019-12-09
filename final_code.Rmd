@@ -1,8 +1,10 @@
 ---
 title: "BIO201 final presentation"
-author: Kasey Neff, Yilin Guan, Peter Nam
-date: 12.9.19
-output: html_document
+author: "Kasey Neff, Yilin Guan, Peter Nam"
+date: "12.9.19"
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -23,12 +25,14 @@ library(broom)
 library(cowplot)
 library(agricolae)
 library(phyloseq)
+library(tinytex)
 set.seed(7)
 ```
 
-# What supplements cause increase in propionate?
+### Reserach Question: What supplements cause increase in propionate? Is this increase (or change) in propionate correlated to other changes in SCFA or variations in species of bacteria? 
 ```{r}
- scfa_weekly <- read_delim(file = "~/Documents/Bio201_Project/final_project_data/DB_v_0.08/SCFA_wkly.txt",
+
+scfa_weekly <- read_delim(file = "~/Documents/Bio201_Project/final_project_data/DB_v_0.08/SCFA_wkly.txt",
                         delim = "\t", col_names = TRUE, trim_ws = TRUE, 
                         na = c("", "NA")) %>%
    rename_all(tolower) %>%
@@ -380,7 +384,7 @@ long_priop_delta_table <- HiMaize_weekly_delta %>%
 sample_data(.)
 
 # seq var info 
-all_data_indv <- read_delim("final_project_data/species_avg_shared.txt", 
+all_data_indv <- read_delim("raw_data/species_avg_shared.txt", 
                             delim = "\t", escape_double = FALSE, 
                             trim_ws = TRUE, 
                             col_types = cols()) %>%
@@ -419,8 +423,8 @@ relative_sample <- unique(relative_sample [,c("sample","tax_name", "category", "
 ```
 
 ### tidy data for correlation
-```{r pressure, echo=FALSE}
-#week 3 data with mached metabolic identities
+```{r}
+# week 3 data with mached metabolic identities
 grep_week3<- relative_sample[grep("week3", relative_sample$sample), ]
 
 #relative abundance of proprionate generators in week 3 in participants who consume himaze
@@ -470,8 +474,9 @@ prop_gen_abd_all <- inner_join(gen_abd_1,gen_abd_3,
 mutate(delta_abundance = prop_abundance_wk3 - prop_abundance_wk1)
 
 ```
-## relationship with propionate generators 
-```{r pressure, echo=FALSE}
+
+### Relationship with propionate generators 
+```{r}
  graph_data_1 <- graph_data%>% 
   filter(delta_propionate >0)
 mean(graph_data_1$delta_propionate) #average of 4.5 % increase. 
@@ -554,9 +559,18 @@ save_plot(filename = "figures/abundance_vs_delta.pdf",
           base_aspect_ratio = 1.1)
 ```
 
-## correlation seperate by semester
-```{r pressure, echo=FALSE}
-#correlation: difference in semseter [since different semster have different pariticpants with different original gut microbiomes]; prop_gen abundance change by semseter (fall2015 vs winter 2017)
+### Correlation seperate by semester
+```{r}
+# correlation: difference in semseter [since different semester have different pariticpants with different original gut microbiomes]; prop_gen abundance change by semseter (fall2015 vs winter 2017)
+
+sample_data_semster <- sample_data_long %>%
+  select(semester, participant_id,delta_propionate,supplement_consumed)
+sample_data_semester <- unique(sample_data_semster [,c("participant_id", "delta_propionate", "supplement_consumed", "semester")])
+prop_gen_abd_all <- prop_gen_abd_all %>%
+  rename_all (tolower)
+# data with delta abundance, semster, and delta propionate
+merged_data <- inner_join(prop_gen_abd_all, sample_data_semester, by = c("participant_id"))
+write_delim(merged_data, path = "~/Documents/Bio201_Project/curated_data/merged_data.txt", delim = "\t") 
 
 # Fall 2015
 fall_sem_plot <- merged_data %>%
@@ -581,15 +595,15 @@ summary(m_fall) # p-value = 0.1193, there is not enough evidence to conclude a l
 # Winter 2017 
 sample_data_semster <- sample_data_long %>%
   select(semester, participant_id,delta_propionate,supplement_consumed)
+sample_data_semester <- unique(sample_data_semster [,c("participant_id", "delta_propionate", "supplement_consumed", "semester")])
 prop_gen_abd_all <- prop_gen_abd_all %>%
   rename_all (tolower)
-#data with delta abundance, semster, and delta propionate
-merged_data<- inner_join(prop_gen_abd_all,sample_data_semster,
-           by = c("participant_id"))
+# data with delta abundance, semster, and delta propionate
+merged_data <- inner_join(prop_gen_abd_all, sample_data_semester, by = c("participant_id"))
 write_delim(merged_data, path = "~/Documents/Bio201_Project/curated_data/merged_data.txt", delim = "\t") 
 graph_3 <- merged_data  %>%
   filter(semester == "Winter2017")
-plot_winter2017<- graph_3 %>%
+plot_winter2017 <- graph_3 %>%
  ggplot(aes(x = delta_propionate,
              y = delta_abundance)) + 
   geom_point() + #puts data points to match x and y coordinates
@@ -598,7 +612,7 @@ plot_winter2017<- graph_3 %>%
   xlab("change in propionate (mmol/kg)") + 
   ylab("delta abundance of propionate in students")
 plot_winter2017
-save_plot(filename = "figures/winter2017's delta abundance vs delta propionate .pdf", 
+save_plot(filename = "figures/w2017_deltaa_deltap.pdf", 
           plot= plot_winter2017,
            nrow = 1, ncol = 1, 
           base_aspect_ratio = 1.1)
@@ -617,7 +631,7 @@ summary(m_winter) #view results
   xlab("change in propionate (mmol/kg)") + 
   ylab("delta abundance of propionate generators for all")
 plot_delta
-save_plot(filename = "figures/all students' delta abundance vs delta propionate .pdf", 
+save_plot(filename = "figures/deltaa_deltap_all.pdf", 
           plot= plot_delta,
            nrow = 2, ncol = 2, 
           base_aspect_ratio = 1.1)
@@ -630,8 +644,8 @@ summary(m_delta) #view results
 
 ```
 
-## delta abundance shown by graph & Is delta abundance of two semsters students the same? 
-```{r pressure, echo=FALSE}
+### Delta abundance shown by graph & Is delta abundance of two semesters students the same? 
+```{r}
 plot_abd <- merged_data %>%
 ggplot(aes(x = supplement_consumed, 
              y = delta_abundance, 
@@ -667,7 +681,7 @@ save_plot(filename = "figures/delta_abundance_by_semester.pdf",
 ###Ordination plot and propionate phyloseq objects
 ```{r}
 # Created a phyloseq object in order to make the ordination plot. 
-read_delim("~/Documents/Bio201_Project/curated_data/long_priop_delta.txt", 
+long_priop_delta <- read_delim("~/Documents/Bio201_Project/curated_data/long_priop_delta.txt", 
                             delim = "\t", escape_double = FALSE, 
                             trim_ws = TRUE, 
                             col_types = cols()) 
@@ -677,7 +691,7 @@ long_priop_delta_table <- long_priop_delta %>%
   column_to_rownames(var = "sample_id") %>% 
   sample_data(.) 
 
-all_data_indv <- read_delim("~/Documents/Bio201_Project/final_project_data/species_avg_shared.txt", 
+all_data_indv <- read_delim("~/Documents/Bio201_Project/raw_data/species_avg_shared.txt", 
                             delim = "\t", escape_double = FALSE, 
                             trim_ws = TRUE, 
                             col_types = cols()) %>%
@@ -719,11 +733,11 @@ ordplot2 <- ordplot1 +
                      labels = c("week1", "week3"))
 ordplot2 
 
-save_plot(filename = "ordplot2.pdf",
+save_plot(filename = "figures/ordplot2.pdf",
           plot = ordplot2,
           nrow = 1, ncol = 2, 
           base_aspect_ratio = 1.1)
-save_plot(filename = "ordplot1.pdf",
+save_plot(filename = "figures/ordplot1.pdf",
           plot = ordplot1,
           nrow = 1, ncol = 2, 
           base_aspect_ratio = 1.1)
@@ -758,7 +772,7 @@ save_plot(filename = "figures/priop_violin2.pdf",
           
 #Bar plot to show the different bacterial compositions of the two semesters (phyloseq objects to bar plot)
 
-read_delim("~/Documents/Bio201_Project/final_project_data/phylum_avg_shared.txt", 
+phylum_avg_shared <- read_delim("~/Documents/Bio201_Project/raw_data/phylum_avg_shared.txt", 
                             delim = "\t", escape_double = FALSE, 
                             trim_ws = TRUE, 
                             col_types = cols()) 
@@ -773,7 +787,9 @@ phylum_data <- phylum_avg_shared %>%
   as.matrix() %>% #
   otu_table(., taxa_are_rows = FALSE) 
 
-scfa_weekly_wide <- SCFA_wkly %>% 
+scfa_weekly_wide <- read_delim(file = "~/Documents/Bio201_Project/final_project_data/DB_v_0.08/SCFA_wkly.txt",
+                        delim = "\t", col_names = TRUE, trim_ws = TRUE, 
+                        na = c("", "NA")) %>% 
   rename_all(tolower) %>% 
   filter(quantity_compliant == "yes", study_week == "week1" | study_week == "week3") %>% 
   select(-starts_with("ace"), -starts_with("but"), -ends_with("median"))
@@ -804,10 +820,12 @@ phylum_plot <- ggplot(data = physq_long,
   ylab("Relative Abundance (Phyla > 0.1%)") 
 phylum_plot
 
-save_plot(filename = "phylum_plot.pdf",
+save_plot(filename = "figures/phylum_plot.pdf",
           plot = phylum_plot,
           nrow = 1, ncol = 1, 
           base_aspect_ratio = 3)
 ```
+### Conclusion
+# From our data, we observed that only one supplement, HiMaize, produced a possibly significant change in propionate concentration from week 1 to week 3. Further analysis and testing of the HiMaize data offered no other significant results or correlations, but this may be in large part due to the inconsistent and variable nature of the data collected. Further, substantial research on this topic will require, most importantly, a much larger sample size. We believe propionate increase is a productive topic to continue research in because of its positive impacts on diet and human health. 
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
