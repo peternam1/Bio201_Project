@@ -26,6 +26,7 @@ library(cowplot)
 library(agricolae)
 library(phyloseq)
 library(tinytex)
+tinytex::install_tinytex()
 set.seed(7)
 ```
 
@@ -498,9 +499,9 @@ plot_prop_delta
 m_delta <- graph_data_1 %>%
   lm(delta_propionate ~ prop_abundance, data = .) #test relationship
 summary(m_delta) #view results 
-#the p value is  0.5892, larger than 0.05, which means we can't use the linear model to interpreate the correlation that there could some linear relationship about delta_propionatae and propionat generator abudance;
-#is there a relationship between propionate generator abundance and the propionate value in group who show's increase in propionate value?
-
+```
+the p value is  0.5892, larger than 0.05, which means we can't use the linear model to interpreate the correlation that there could some linear relationship about delta_propionatae and propionat generator abudance in people who increase in propionate value between week 1 and week 3;
+```{r}
 # plot to determine whether there is a relationship between propionate abundance and negative delta_propionate of participants who consume Hi_Maize
 prop_plot <- graph_data_6 %>%
  ggplot(aes(x = delta_propionate,
@@ -515,9 +516,11 @@ prop_plot
 m_delta <- graph_data_6 %>%
   lm(delta_propionate ~ prop_abundance, data = .) 
 summary(m_delta)
-# p-value = 0.9915, there is not enough evidence to conclude a linear relationship between change in propionate and propionate generator abundance in individuals whose mean propionate decreased from week 1 to week 3.
+```
+There is not enough evidence to conclude a linear relationship between change in propionate and propionate generator abundance in individuals whose mean propionate decreased from week 1 to week 3 since our p value is 0.9915 .
 
-
+```{r}
+# plot to determine whether there is a relationship between ovearll propionate value  and postive delta_propionate of participants who consume Hi_Maize
 plot_prop_value<- graph_data_1 %>%
  ggplot(aes(x = proprionate_value,
              y = prop_abundance)) + 
@@ -531,8 +534,10 @@ plot_prop_value
 m_value <- graph_data_1 %>%
   lm(proprionate_value ~ prop_abundance, data = .) #test relationship
 summary(m_value) #view results 
-#the p value is  0.536, larger than 0.05, which means we can't use the linear model to interpreate the correlation that there could some linear relationship about propionate value  and propionat generator abudance;
-
+```
+The p value is  0.536, larger than 0.05, which means we can't use the linear model to interpreate the correlation that there could some linear relationship about propionate value and propionat generator abudance among people who has postive delta propionate value.
+```{r}
+# plot to determine whether there is a relationship between ovearll propionate value and negative delta_propionate of participants who consume Hi_Maize
 prop_conc_plot <- graph_data_6 %>%
  ggplot(aes(x = proprionate_value,
              y = prop_abundance)) + 
@@ -542,12 +547,12 @@ prop_conc_plot <- graph_data_6 %>%
   xlab("Mean Propionate (mmol/kg)") + 
   ylab("Propionate Generator Abundance") 
 prop_conc_plot
+
 # Correlation test
 m_conc <- graph_data_6 %>%
   lm(proprionate_value ~ prop_abundance, data = .)
-summary(m_conc)
-# p-value = 0.4917, there is not enough evidence to conclude a linear relationship between mean propionate and propionate generator abundance in individuals whose mean propionate decreased from week 1 to week 3.
- 
+summary(m_conc) # p value = 0.4917
+
 save_plot(filename = "figures/abundance_vs_mean.pdf", 
           plot= plot_prop_delta,
            nrow = 1, ncol = 2, 
@@ -558,6 +563,7 @@ save_plot(filename = "figures/abundance_vs_delta.pdf",
            nrow = 1, ncol = 2, 
           base_aspect_ratio = 1.1)
 ```
+Since the p-value is 0.4917, we don't have enough evidence to conclude a linear relationship between mean propionate and propionate generator abundance in individuals whose mean propionate decreased from week 1 to week 3.
 
 ### Correlation seperate by semester
 ```{r}
@@ -590,8 +596,10 @@ save_plot(filename = "figures/fall2015_prop_abund.pdf",
 m_fall <- merged_data %>%
    filter(semester == "Fall2015") %>%
    lm(delta_propionate ~ delta_abundance, data = .)
-summary(m_fall) # p-value = 0.1193, there is not enough evidence to conclude a linear relationship between propionate change and change in propionate generators in participants who consumed HiMaize during the Fall 2015 semester.
-
+summary(m_fall)
+```
+There is not enough evidence to conclude a linear relationship between propionate change and change in propionate generators in participants who consumed HiMaize during the Fall 2015 semester since our p value is 0.1193.
+```{r}
 # Winter 2017 
 sample_data_semster <- sample_data_long %>%
   select(semester, participant_id,delta_propionate,supplement_consumed)
@@ -620,7 +628,10 @@ save_plot(filename = "figures/w2017_deltaa_deltap.pdf",
 m_winter <- graph_3 %>%
   lm(delta_propionate ~ delta_abundance, data = .) #test relationship
 summary(m_winter) #view results 
-#the p value is  0.7174, larger than 0.05, which means we can't use the linear model to interpreate the correlation. There is no linear relationship about delta propionate value and the change inpropionat generator abudance of students in winter2017;
+```
+The p value is  0.7174, larger than 0.05, which means we can't use the linear model to interpreate the correlation. There is no linear relationship about delta propionate value and the change inpropionat generator abudance of students in winter2017;
+
+```{r}
 # (correlation: difference in abundance vs delta propionate (all)
  plot_delta <- merged_data %>%
  ggplot(aes(x = delta_propionate,
@@ -639,10 +650,8 @@ save_plot(filename = "figures/deltaa_deltap_all.pdf",
 m_delta <- merged_data %>%
   lm(delta_propionate ~ delta_abundance, data = .) #test relationship
 summary(m_delta) #view results 
-#the p value is  0.8417, larger than 0.05, which means we can't use the linear model to interpreate the correlation. There is no linear relationship about delta propionate value and the change in propionat generator abudance for all students who consume HiMaize;
-
-
 ```
+the p value is  0.8417, larger than 0.05, which means we can't use the linear model to interpreate the correlation. There is no linear relationship about delta propionate value and the change in propionat generator abudance for all students who consume HiMaize.
 
 ### Delta abundance shown by graph & Is delta abundance of two semesters students the same? 
 ```{r}
@@ -826,6 +835,6 @@ save_plot(filename = "figures/phylum_plot.pdf",
           base_aspect_ratio = 3)
 ```
 ### Conclusion
-# From our data, we observed that only one supplement, HiMaize, produced a possibly significant change in propionate concentration from week 1 to week 3. Further analysis and testing of the HiMaize data offered no other significant results or correlations, but this may be in large part due to the inconsistent and variable nature of the data collected. Further, substantial research on this topic will require, most importantly, a much larger sample size. We believe propionate increase is a productive topic to continue research in because of its positive impacts on diet and human health. 
+From our data, we observed that only one supplement, HiMaize, produced a possibly significant change in propionate concentration from week 1 to week 3. Further analysis and testing of the HiMaize data offered no other significant results or correlations, but this may be in large part due to the inconsistent and variable nature of the data collected. Further, substantial research on this topic will require, most importantly, a much larger sample size. We believe propionate increase is a productive topic to continue research in because of its positive impacts on diet and human health. 
 
 
